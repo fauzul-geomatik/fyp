@@ -1,0 +1,3168 @@
+<!DOCTYPE html>
+<html lang="ms">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sistem Pendaftaran Projek Pelajar</title>
+  
+  <!-- CSS Bootstrap 5 & FontAwesome -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+  
+  <!-- SweetAlert2 & Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <style>
+    :root {
+      --primary-color: #1e3c72;
+      --secondary-color: #1abc9c;
+    }
+    body {
+      background-color: #f4f6f9;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    }
+    .navbar-custom {
+      background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+    }
+    .card-stat {
+      border: none;
+      border-radius: 12px;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+      transition: transform 0.2s;
+    }
+    .card-stat:hover {
+      transform: translateY(-3px);
+    }
+    .nav-pills .nav-link.active {
+      background-color: var(--secondary-color) !important;
+    }
+    .member-box {
+      background-color: #ffffff;
+      border: 1px solid #e3e6f0;
+      border-radius: 8px;
+      padding: 12px;
+      margin-bottom: 10px;
+    }
+    .loading-overlay {
+      position: fixed;
+      top: 0; left: 0; width: 100%; height: 100%;
+      background: rgba(255,255,255,0.85);
+      z-index: 9999;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      flex-direction: column;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Loading Overlay -->
+  <div id="loadingOverlay" class="loading-overlay d-none">
+    <div class="spinner-border text-primary" style="width: 3rem; height: 3rem;" role="status"></div>
+    <h5 class="mt-3 text-secondary" id="loadingText">Sedang Memproses Data...</h5>
+  </div>
+
+  <!-- Header Navigation -->
+  <nav class="navbar navbar-dark navbar-custom navbar-expand-lg mb-4 shadow">
+    <div class="container-fluid px-4">
+      <a class="navbar-brand fw-bold" href="#">
+        <i class="fa-solid fa-graduation-cap me-2"></i>Sistem Pendaftaran Projek Pelajar
+      </a>
+      <span class="navbar-text text-white-50 d-none d-md-inline">
+        <i class="fa-solid fa-folder-open me-1"></i> Google Drive & Sheet Integration
+      </span>
+    </div>
+  </nav>
+
+  <div class="container-fluid px-4">
+
+    <!-- Tab Navigation Utama -->
+    <ul class="nav nav-pills mb-4 justify-content-center bg-white p-2 rounded shadow-sm" id="mainTabs" role="tablist">
+      <li class="nav-item">
+        <button class="nav-link active fw-semibold" id="tab-dashboard" data-bs-toggle="pill" data-bs-target="#content-dashboard" type="button">
+          <i class="fa-solid fa-chart-pie me-2"></i>Dashboard & Statistik
+        </button>
+      </li>
+      <li class="nav-item">
+        <button class="nav-link fw-semibold" id="tab-register" data-bs-toggle="pill" data-bs-target="#content-register" type="button">
+          <i class="fa-solid fa-pen-to-square me-2"></i>Pendaftaran / Kemaskini Pelajar
+        </button>
+      </li>
+      <li class="nav-item">
+        <button class="nav-link fw-semibold" id="tab-lecturer" data-bs-toggle="pill" data-bs-target="#content-lecturer" type="button" onclick="checkLecturerAccess()">
+          <i class="fa-solid fa-user-check me-2"></i>Kelulusan Pensyarah
+        </button>
+      </li>
+      <li class="nav-item">
+        <button class="nav-link fw-semibold" id="tab-list" data-bs-toggle="pill" data-bs-target="#content-list" type="button">
+          <i class="fa-solid fa-table me-2"></i>Senarai Projek
+        </button>
+      </li>
+      <li class="nav-item">
+        <button class="nav-link fw-semibold" id="tab-jadual" data-bs-toggle="pill" data-bs-target="#content-jadual" type="button">
+          <i class="fa-solid fa-calendar-days me-2"></i>Jadual PEMBENTANGAN
+        </button>
+      </li>
+      <li class="nav-item">
+        <button class="nav-link fw-semibold" id="tab-appointment" data-bs-toggle="pill" data-bs-target="#content-appointment" type="button" onclick="checkAppointmentAccess()">
+          <i class="fa-solid fa-file-contract me-2"></i>SURAT LANTIKAN PENYELIA/PANEL
+        </button>
+      </li>
+      <li class="nav-item">
+        <button class="nav-link fw-semibold" id="tab-admin" data-bs-toggle="pill" data-bs-target="#content-admin" type="button" onclick="checkAdminTabAccess()">
+          <i class="fa-solid fa-user-gear me-2"></i>Pentadbir
+        </button>
+      </li>
+    </ul>
+
+    <div class="tab-content" id="mainTabsContent">
+
+      <!-- ================= 1. DASHBOARD ================= -->
+      <div class="tab-pane fade show active" id="content-dashboard" role="tabpanel">
+        <div class="row g-3 mb-4">
+          <div class="col-md-3">
+            <div class="card card-stat bg-primary text-white p-3">
+              <div class="d-flex justify-content-between align-items-center">
+                <div>
+                  <h6 class="text-white-50">JUMLAH KUMPULAN PROJEK</h6>
+                  <h2 class="mb-0 fw-bold" id="statTotal">0</h2>
+                </div>
+                <i class="fa-solid fa-diagram-project fa-2x opacity-50"></i>
+              </div>
+            </div>
+          </div>
+          <div class="col-md-3">
+            <div class="card card-stat bg-success text-white p-3">
+              <div class="d-flex justify-content-between align-items-center">
+                <div>
+                  <h6 class="text-white-50">DISAHKAN</h6>
+                  <h2 class="mb-0 fw-bold" id="statApproved">0</h2>
+                </div>
+                <i class="fa-solid fa-circle-check fa-2x opacity-50"></i>
+              </div>
+            </div>
+          </div>
+          <div class="col-md-3">
+            <div class="card card-stat bg-warning text-dark p-3">
+              <div class="d-flex justify-content-between align-items-center">
+                <div>
+                  <h6 class="text-dark-50">BELUM DISAHKAN</h6>
+                  <h2 class="mb-0 fw-bold" id="statPending">0</h2>
+                </div>
+                <i class="fa-solid fa-clock fa-2x opacity-50"></i>
+              </div>
+            </div>
+          </div>
+          <div class="col-md-3">
+            <div class="card card-stat bg-danger text-white p-3">
+              <div class="d-flex justify-content-between align-items-center">
+                <div>
+                  <h6 class="text-white-50">DITOLAK</h6>
+                  <h2 class="mb-0 fw-bold" id="statRejected">0</h2>
+                </div>
+                <i class="fa-solid fa-circle-xmark fa-2x opacity-50"></i>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="row g-4 mb-4">
+          <div class="col-12">
+            <div class="card border-0 shadow-sm p-4">
+              <h5 class="fw-bold text-dark mb-3"><i class="fa-solid fa-chart-bar me-2 text-primary"></i>Statistik Pendaftaran Projek Mengikut Sesi</h5>
+              <div style="height: 320px;">
+                <canvas id="barChartStatus"></canvas>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="row g-4">
+          <div class="col-12">
+            <div class="card border-0 shadow-sm p-4">
+              <div class="d-flex justify-content-between align-items-center mb-3">
+                <h5 class="fw-bold text-primary mb-0"><i class="fa-solid fa-user-tie me-2"></i>Statistik Bilangan Projek Diselia & Dinilai Mengikut Pensyarah</h5>
+                <div class="d-flex align-items-center gap-2">
+                  <label class="form-label mb-0 fw-semibold text-muted">Penapis Sesi:</label>
+                  <select id="dashboardSesiFilter" class="form-select w-auto" onchange="renderSupervisorDashboard()">
+                    <option value="">-- Semua Sesi --</option>
+                  </select>
+                </div>
+              </div>
+              
+              <div class="row g-4">
+                <div class="col-md-7">
+                  <div style="height: 360px;">
+                    <canvas id="barChartSupervisor"></canvas>
+                  </div>
+                </div>
+                <div class="col-md-5">
+                  <div class="table-responsive" style="max-height: 360px; overflow-y: auto;">
+                    <table class="table table-bordered table-sm align-middle">
+                      <thead class="table-light sticky-top">
+                        <tr>
+                          <th>Nama Pensyarah</th>
+                          <th class="text-center">Sesi</th>
+                          <th class="text-center">Bil. Menyelia</th>
+                          <th class="text-center">Bil. Penilai</th>
+                        </tr>
+                      </thead>
+                      <tbody id="dashboardSupervisorTableBody"></tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
+
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- ================= 2. BORANG PENDAFTARAN / KEMASKINI ================= -->
+      <div class="tab-pane fade" id="content-register" role="tabpanel">
+        <div class="row justify-content-center">
+          <div class="col-lg-9">
+            <div class="card border-0 shadow-sm p-4">
+
+              <!-- KAWASAN CARIAN PANTS (KHAS & BUKAN KONGSI) -->
+              <div class="card bg-light border-0 p-3 mb-4 shadow-sm">
+                <div class="alert alert-info d-flex align-items-center mb-3">
+                  <i class="fa-solid fa-circle-info me-2 fs-5"></i>
+                  <div>
+                    <strong>Carian & Muat Turun Semula Rekod?</strong> Pilih <strong>SESI</strong>, <strong>KELAS</strong> dan masukkan <strong>No. Matrik</strong> ahli kumpulan untuk carian pantas rekod dan muat turun Borang Pendaftaran PDF.
+                  </div>
+                </div>
+
+                <div class="row g-2 align-items-end">
+                  <div class="col-md-3">
+                    <label class="form-label fw-semibold small mb-1"><i class="fa-solid fa-calendar-days me-1 text-primary"></i>SESI Carian:</label>
+                    <select id="searchSesiSelect" class="form-select form-select-sm">
+                      <option value="">-- Semua Sesi --</option>
+                    </select>
+                  </div>
+                  <div class="col-md-3">
+                    <label class="form-label fw-semibold small mb-1"><i class="fa-solid fa-users-rectangle me-1 text-primary"></i>KELAS Carian:</label>
+                    <select id="searchKelasSelect" class="form-select form-select-sm">
+                      <option value="">-- Semua Kelas --</option>
+                      <option value="DGU4A">DGU4A</option>
+                      <option value="DGU4B">DGU4B</option>
+                      <option value="DGU5A">DGU5A</option>
+                      <option value="DGU5B">DGU5B</option>
+                      <option value="DGU5C">DGU5C</option>
+                    </select>
+                  </div>
+                  <div class="col-md-4">
+                    <label class="form-label fw-semibold small mb-1"><i class="fa-solid fa-id-card me-1 text-primary"></i>No. Matrik (Lajur C):</label>
+                    <input type="text" id="searchMatrikInput" class="form-control form-select-sm" placeholder="Masukkan No. Matrik...">
+                  </div>
+                  <div class="col-md-2">
+                    <button class="btn btn-primary btn-sm w-100 fw-semibold" type="button" onclick="searchStudentRecord()">
+                      <i class="fa-solid fa-magnifying-glass me-1"></i> Cari Rekod
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              <hr class="my-4">
+
+              <!-- BORANG PENDAFTARAN PROJEK PELAJAR (LAMPIRAN A) -->
+              <form id="projectForm" onsubmit="handleFormSubmit(event)">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                  <h5 class="fw-bold text-primary mb-0" id="formTitle"><i class="fa-solid fa-file-pen me-2"></i>Borang Pendaftaran Projek Pelajar (Lampiran A)</h5>
+                  <span class="badge bg-secondary">Politeknik Ungku Omar</span>
+                </div>
+
+                <div class="row mb-3">
+                  <div class="col-md-6">
+                    <label class="form-label fw-semibold">Kelas / Tab</label>
+                    <select id="kelas" class="form-select" onchange="updateStudentDocTypeOptions()" required>
+                      <option value="DGU4A">DGU4A</option>
+                      <option value="DGU4B">DGU4B</option>
+                      <option value="DGU5A">DGU5A</option>
+                      <option value="DGU5B">DGU5B</option>
+                      <option value="DGU5C">DGU5C</option>
+                    </select>
+                  </div>
+                  <div class="col-md-6">
+                    <label class="form-label fw-semibold">Sesi Pengajian</label>
+                    <input type="text" id="sesi" class="form-control bg-light" readonly required>
+                  </div>
+                </div>
+
+                <!-- AHLI KUMPULAN -->
+                <div class="card bg-light p-3 mb-4 border-0">
+                  <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h6 class="fw-bold text-dark mb-0"><i class="fa-solid fa-users me-2 text-primary"></i>Ahli Kumpulan Projek (Maksimum 3 Ahli)</h6>
+                    <button type="button" class="btn btn-sm btn-success" onclick="addMemberRow()">
+                      <i class="fa-solid fa-plus me-1"></i> Tambah Ahli
+                    </button>
+                  </div>
+                  <div id="membersContainer"></div>
+                </div>
+
+                <!-- MAKLUMAT PROJEK -->
+                <div class="card border p-3 mb-4">
+                  <h6 class="fw-bold text-primary mb-3"><i class="fa-solid fa-align-left me-2"></i>Maklumat Projek (Template Lampiran A)</h6>
+
+                  <div class="mb-4">
+                    <label class="form-label fw-semibold">A. Cadangan Tajuk Projek</label>
+                    <textarea id="tajukProjek" class="form-control" rows="2" placeholder="Masukkan tajuk projek secara penuh" required></textarea>
+                  </div>
+
+                  <div class="mb-4 bg-light p-3 rounded">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                      <label class="form-label fw-semibold mb-0">B1. Pernyataan Masalah</label>
+                      <button type="button" class="btn btn-sm btn-outline-primary" onclick="addProblemRow()">
+                        <i class="fa-solid fa-plus me-1"></i> Tambah Pernyataan
+                      </button>
+                    </div>
+                    <div id="problemContainer"></div>
+                  </div>
+
+                  <div class="mb-4 bg-light p-3 rounded">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                      <label class="form-label fw-semibold mb-0">B2. Objektif Projek / Kajian</label>
+                      <button type="button" class="btn btn-sm btn-outline-primary" onclick="addObjectiveRow()">
+                        <i class="fa-solid fa-plus me-1"></i> Tambah Objektif
+                      </button>
+                    </div>
+                    <div id="objectiveContainer"></div>
+                  </div>
+
+                  <div class="mb-3">
+                    <label class="form-label fw-semibold">B3. Skop Projek / Kajian</label>
+                    <textarea id="skopProjek" class="form-control" rows="3" placeholder="Masukkan skop projek secara terperinci..."></textarea>
+                  </div>
+
+                  <div class="mb-2">
+                    <label class="form-label fw-semibold">Nama Pensyarah Penyelia</label>
+                    <select id="namaPensyarah" class="form-select" required>
+                      <option value="">-- Memuatkan Senarai Penyelia... --</option>
+                    </select>
+                    <small class="text-muted" id="supervisorSessionNotice">Penyelia disenaraikan dari tab PENYELIA.</small>
+                  </div>
+                </div>
+
+                <!-- DOKUMEN MUAT NAIK -->
+                <div class="card bg-light p-3 mb-4 border-0">
+                  <h6 class="fw-bold text-secondary mb-3"><i class="fa-solid fa-cloud-arrow-up me-2"></i>Muat Naik Proposal / Laporan (Google Drive)</h6>
+                  
+                  <div class="row g-3 mb-2">
+                    <div class="col-md-5">
+                      <label class="form-label fw-semibold">Jenis Dokumen Muat Naik</label>
+                      <select id="studentDocType" class="form-select">
+                        <option value="PROPOSAL">PROPOSAL (Diwajibkan)</option>
+                        <option value="LAPORAN_AKHIR">LAPORAN AKHIR</option>
+                      </select>
+                    </div>
+                    <div class="col-md-7">
+                      <label class="form-label fw-semibold">Pilih Fail Dokumen (PDF/Word)</label>
+                      <input type="file" id="studentDocFile" class="form-control" accept=".pdf,.doc,.docx">
+                    </div>
+                  </div>
+                  <small class="text-muted d-block mb-2">
+                    * Dokumen PDF Borang Pendaftaran Projek (Lampiran A) akan <strong>dijana secara automatik</strong> dan disimpan ke Lajur H spreadsheet. Dokumen Proposal atau Laporan Akhir yang dimuat naik akan disimpan pada <strong>Lajur G</strong> spreadsheet tab kelas berkenaan.
+                  </small>
+
+                  <div id="existingDocLinks" class="mt-2">
+                    <span id="proposalCurrentUrl"></span><br>
+                    <span id="laporanCurrentUrl"></span><br>
+                    <span id="borangPdfCurrentUrl"></span>
+                  </div>
+                </div>
+
+                <div class="d-grid gap-2">
+                  <button type="submit" class="btn btn-primary btn-lg fw-semibold">
+                    <i class="fa-solid fa-paper-plane me-2"></i>Hantar Pendaftaran / Kemaskini & Jana PDF
+                  </button>
+                  <button type="button" class="btn btn-light" onclick="resetForm()">Batal / Bersihkan Borang</button>
+                </div>
+
+              </form>
+
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ================= 3. KELULUSAN PENSYARAH ================= -->
+      <div class="tab-pane fade" id="content-lecturer" role="tabpanel">
+        <div class="card border-0 shadow-sm p-4">
+          <div class="d-flex justify-content-between align-items-center mb-3">
+            <h5 class="fw-bold text-primary mb-0"><i class="fa-solid fa-user-shield me-2"></i>Pengesahan & Kelulusan Pensyarah</h5>
+            <div class="d-flex gap-2">
+              <button class="btn btn-danger btn-sm text-white fw-semibold" onclick="downloadFilteredPdfReport()">
+                <i class="fa-solid fa-file-pdf me-1"></i> Muat Turun Senarai Laporan (PDF)
+              </button>
+              <button class="btn btn-sm btn-outline-danger" onclick="lockLecturerAccess()"><i class="fa-solid fa-lock me-1"></i>Kunci Semula</button>
+            </div>
+          </div>
+
+          <div class="row g-2 mb-3 bg-light p-3 rounded">
+            <div class="col-md-3">
+              <label class="form-label fw-semibold small">Penapis Kelas:</label>
+              <select id="filterLecturerKelas" class="form-select form-select-sm" onchange="renderLecturerTable()">
+                <option value="">-- Semua Kelas --</option>
+                <option value="DGU4A">DGU4A</option>
+                <option value="DGU4B">DGU4B</option>
+                <option value="DGU5A">DGU5A</option>
+                <option value="DGU5B">DGU5B</option>
+                <option value="DGU5C">DGU5C</option>
+              </select>
+            </div>
+            <div class="col-md-3">
+              <label class="form-label fw-semibold small">Penapis Sesi:</label>
+              <select id="filterLecturerSesi" class="form-select form-select-sm" onchange="renderLecturerTable()">
+                <option value="">-- Semua Sesi --</option>
+              </select>
+            </div>
+            <div class="col-md-3">
+              <label class="form-label fw-semibold small">Penapis Status (Lajur I):</label>
+              <select id="filterLecturerStatus" class="form-select form-select-sm" onchange="renderLecturerTable()">
+                <option value="">-- Semua Status --</option>
+                <option value="Belum Disahkan">Belum Disahkan</option>
+                <option value="Disahkan">Disahkan</option>
+                <option value="Ditolak">Ditolak</option>
+              </select>
+            </div>
+            <div class="col-md-3">
+              <label class="form-label fw-semibold small">Carian Penuh:</label>
+              <input type="text" id="filterLecturerInput" class="form-control form-select-sm" placeholder="Cari tajuk / matrik / nama..." onkeyup="renderLecturerTable()">
+            </div>
+          </div>
+
+          <div class="table-responsive">
+            <table class="table table-hover align-middle">
+              <thead class="table-dark">
+                <tr>
+                  <th class="text-center">NO</th>
+                  <th>NAMA AHLI KUMPULAN</th>
+                  <th>NO. PENDAFTARAN</th>
+                  <th class="text-center">KELAS</th>
+                  <th>TAJUK PROJEK</th>
+                  <th>NAMA PENYELIA</th>
+                  <th class="text-center">LINK PROPOSAL / LAPORAN (LAJUR G)</th>
+                  <th class="text-center">BORANG PDF (LAJUR H)</th>
+                  <th class="text-center">STATUS (LAJUR I)</th>
+                  <th class="text-center">TARIKH PENGESAHAN (LAJUR J)</th>
+                  <th class="text-center">TINDAKAN PENGESAHAN</th>
+                </tr>
+              </thead>
+              <tbody id="lecturerTableBody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- ================= 4. SENARAI PROJEK ================= -->
+      <div class="tab-pane fade" id="content-list" role="tabpanel">
+        <div class="card border-0 shadow-sm p-4">
+          <div class="d-flex justify-content-between align-items-center mb-3">
+            <h5 class="fw-bold text-primary mb-0"><i class="fa-solid fa-list-check me-2"></i>Senarai Keseluruhan Projek Pelajar</h5>
+            <span class="badge bg-secondary p-2"><i class="fa-solid fa-database me-1"></i> Google Sheets Integration</span>
+          </div>
+          
+          <div class="row g-2 mb-3 bg-light p-3 rounded">
+            <div class="col-md-4">
+              <label class="form-label fw-semibold small">Penapis Kelas:</label>
+              <select id="filterListKelas" class="form-select form-select-sm" onchange="renderPublicTable()">
+                <option value="">-- Semua Kelas --</option>
+                <option value="DGU4A">DGU4A</option>
+                <option value="DGU4B">DGU4B</option>
+                <option value="DGU5A">DGU5A</option>
+                <option value="DGU5B">DGU5B</option>
+                <option value="DGU5C">DGU5C</option>
+              </select>
+            </div>
+            <div class="col-md-4">
+              <label class="form-label fw-semibold small">Penapis Sesi:</label>
+              <select id="filterListSesi" class="form-select form-select-sm" onchange="renderPublicTable()">
+                <option value="">-- Semua Sesi --</option>
+              </select>
+            </div>
+            <div class="col-md-4">
+              <label class="form-label fw-semibold small">Carian Penuh:</label>
+              <input type="text" id="filterListInput" class="form-control form-select-sm" placeholder="Cari tajuk / matrik / nama..." onkeyup="renderPublicTable()">
+            </div>
+          </div>
+
+          <div class="table-responsive">
+            <table class="table table-striped align-middle" id="projectListTable">
+              <thead class="table-primary">
+                <tr>
+                  <th class="text-center">NO</th>
+                  <th>NAMA AHLI KUMPULAN</th>
+                  <th>NO PENDAFTARAN</th>
+                  <th>TAJUK</th>
+                  <th>NAMA PENYELIA</th>
+                  <th class="text-center">SESI</th>
+                  <th class="text-center">STATUS</th>
+                  <th class="text-center">DOKUMEN & BORANG PDF</th>
+                </tr>
+              </thead>
+              <tbody id="publicTableBody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- ================= 5. TAB JADUAL PEMBENTANGAN ================= -->
+      <div class="tab-pane fade" id="content-jadual" role="tabpanel">
+        <div class="card border-0 shadow-sm p-4">
+          
+          <ul class="nav nav-tabs mb-4" id="jadualSubTabs" role="tablist">
+            <li class="nav-item">
+              <button class="nav-link active fw-bold" id="subtab-jadual-list" data-bs-toggle="tab" data-bs-target="#subcontent-jadual-list" type="button">
+                <i class="fa-solid fa-list me-2"></i>Senarai Projek & Jadual
+              </button>
+            </li>
+            <li class="nav-item">
+              <button class="nav-link fw-bold text-danger" id="subtab-jadual-admin" data-bs-toggle="tab" data-bs-target="#subcontent-jadual-admin" type="button" onclick="checkJadualAdminAccess()">
+                <i class="fa-solid fa-calendar-plus me-2"></i>Pentadbir (Pengurusan Jadual)
+              </button>
+            </li>
+          </ul>
+
+          <div class="tab-content" id="jadualSubTabsContent">
+            
+            <div class="tab-pane fade show active" id="subcontent-jadual-list" role="tabpanel">
+              <div class="row g-2 mb-4 bg-light p-3 rounded">
+                <div class="col-md-4">
+                  <label class="form-label fw-semibold small">Penapis Sesi:</label>
+                  <select id="filterJadualSesi" class="form-select form-select-sm" onchange="renderJadualTable()">
+                    <option value="">-- Semua Sesi --</option>
+                  </select>
+                </div>
+                <div class="col-md-4">
+                  <label class="form-label fw-semibold small">Penapis Kelas:</label>
+                  <select id="filterJadualKelas" class="form-select form-select-sm" onchange="renderJadualTable()">
+                    <option value="">-- Semua Kelas --</option>
+                    <option value="DGU4A">DGU4A</option>
+                    <option value="DGU4B">DGU4B</option>
+                    <option value="DGU5A">DGU5A</option>
+                    <option value="DGU5B">DGU5B</option>
+                    <option value="DGU5C">DGU5C</option>
+                  </select>
+                </div>
+                <div class="col-md-4">
+                  <label class="form-label fw-semibold small">Jenis Pembentangan:</label>
+                  <select id="filterJadualJenis" class="form-select form-select-sm" onchange="renderJadualTable()">
+                    <option value="">-- Semua Jenis Pembentangan --</option>
+                    <option value="proposal">JADUAL PEMBENTANGAN PROPOSAL</option>
+                    <option value="akhir">JADUAL PEMBENTANGAN LAPORAN AKHIR</option>
+                  </select>
+                </div>
+              </div>
+
+              <div class="table-responsive">
+                <table class="table table-hover align-middle">
+                  <thead class="table-dark">
+                    <tr>
+                      <th class="text-center">NO</th>
+                      <th>KUMPULAN / NAMA AHLI</th>
+                      <th class="text-center">KELAS</th>
+                      <th class="text-center">SESI</th>
+                      <th>TAJUK PROJEK</th>
+                      <th>NAMA PENYELIA</th>
+                      <th>PANEL PENILAI (LAJUR K)</th>
+                      <th class="text-center">TARIKH / MASA / TEMPAT (LAJUR L)</th>
+                      <th class="text-center">DOKUMEN JADUAL</th>
+                    </tr>
+                  </thead>
+                  <tbody id="jadualTableBody"></tbody>
+                </table>
+              </div>
+            </div>
+
+            <div class="tab-pane fade" id="subcontent-jadual-admin" role="tabpanel">
+              <div class="card border p-4 bg-light">
+                <h5 class="fw-bold text-primary mb-3"><i class="fa-solid fa-clock me-2"></i>Kemaskini Tarikh, Masa & Panel Penilai Projek</h5>
+
+                <form id="scheduleAdminForm" onsubmit="handleScheduleAdminSubmit(event)">
+                  <div class="row g-3 mb-3">
+                    <div class="col-md-3">
+                      <label class="form-label fw-semibold">Pilih Sesi Pengajian</label>
+                      <select id="adminScheduleSesi" class="form-select" onchange="populateAdminProjectDropdown()">
+                        <option value="">-- Semua Sesi --</option>
+                      </select>
+                    </div>
+
+                    <div class="col-md-3">
+                      <label class="form-label fw-semibold">Pilih Kelas / Tab</label>
+                      <select id="adminScheduleKelas" class="form-select" onchange="populateAdminProjectDropdown()" required>
+                        <option value="DGU4A">DGU4A</option>
+                        <option value="DGU4B">DGU4B</option>
+                        <option value="DGU5A">DGU5A</option>
+                        <option value="DGU5B">DGU5B</option>
+                        <option value="DGU5C">DGU5C</option>
+                      </select>
+                    </div>
+
+                    <div class="col-md-6">
+                      <label class="form-label fw-semibold">Pilih Kumpulan / Projek Pelajar</label>
+                      <select id="adminScheduleProject" class="form-select" onchange="displayAdminProjectDetails()" required>
+                        <option value="">-- Pilih Kumpulan / Projek Pelajar --</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <div id="adminProjectMembersPreview"></div>
+
+                  <div class="row g-3 mb-3">
+                    <div class="col-md-4">
+                      <label class="form-label fw-semibold">Jenis Pembentangan</label>
+                      <select id="adminScheduleJenis" class="form-select">
+                        <option value="PROPOSAL">Jadual Pembentangan Proposal (Lajur M)</option>
+                        <option value="AKHIR">Jadual Pembentangan Laporan Akhir (Lajur N)</option>
+                      </select>
+                    </div>
+
+                    <div class="col-md-8">
+                      <label class="form-label fw-semibold">Penetapan Tarikh, Masa & Tempat Pembentangan</label>
+                      <div class="row g-2">
+                        <div class="col-md-4">
+                          <label class="form-label text-muted small mb-1">Tarikh:</label>
+                          <input type="date" id="adminScheduleTarikh" class="form-control" required>
+                        </div>
+                        <div class="col-md-4">
+                          <label class="form-label text-muted small mb-1">Masa:</label>
+                          <input type="text" id="adminScheduleMasa" class="form-control" placeholder="Contoh: 3.00 - 3.30 pm" required>
+                        </div>
+                        <div class="col-md-4">
+                          <label class="form-label text-muted small mb-1">Tempat / Lokasi:</label>
+                          <input type="text" id="adminScheduleTempat" class="form-control" placeholder="Contoh: Makmal Geomatik / online" required>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div class="mb-3">
+                    <label class="form-label fw-semibold"><i class="fa-solid fa-cloud-arrow-up me-2 text-primary"></i>Muat Naik Dokumen Jadual Pembentangan (PDF / Word)</label>
+                    <input type="file" id="adminScheduleFile" class="form-control" accept=".pdf,.doc,.docx">
+                    <small class="text-muted">Dokumen ini akan disimpan terus ke Google Drive dan pautan muat turun akan dikemaskini mengikut jenis pembentangan yang dipilih.</small>
+                  </div>
+
+                  <div class="row g-3 mb-4">
+                    <div class="col-md-6">
+                      <label class="form-label fw-semibold">Panel Penilai 1 (Lajur K)</label>
+                      <select id="adminSchedulePanel1" class="form-select" required>
+                        <option value="">-- Pilih Juri/Penilai 1 --</option>
+                      </select>
+                    </div>
+
+                    <div class="col-md-6">
+                      <label class="form-label fw-semibold">Panel Penilai 2 (Lajur K)</label>
+                      <select id="adminSchedulePanel2" class="form-select">
+                        <option value="">-- Pilih Juri/Penilai 2 (Opsional) --</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <div class="text-end">
+                    <button type="submit" class="btn btn-success fw-semibold btn-lg">
+                      <i class="fa-solid fa-floppy-disk me-2"></i>Simpan & Kemaskini Jadual
+                    </button>
+                  </div>
+                </form>
+
+              </div>
+            </div>
+
+          </div>
+
+        </div>
+      </div>
+
+      <!-- ================= 6. TAB SURAT LANTIKAN PENYELIA/PANEL ================= -->
+      <div class="tab-pane fade" id="content-appointment" role="tabpanel">
+        <div class="card border-0 shadow-sm p-4">
+          <div class="d-flex justify-content-between align-items-center mb-3">
+            <h5 class="fw-bold text-primary mb-0"><i class="fa-solid fa-file-contract me-2"></i>SURAT LANTIKAN PENYELIA/PANEL</h5>
+            <button class="btn btn-sm btn-outline-danger" onclick="lockAppointmentAccess()"><i class="fa-solid fa-lock me-1"></i>Kunci Semula</button>
+          </div>
+
+          <div class="row g-3 mb-4 bg-light p-3 rounded align-items-center">
+            <div class="col-md-6">
+              <label class="form-label fw-semibold small">Pilih Sesi Pengajian:</label>
+              <select id="filterAppointmentSesi" class="form-select" onchange="renderAppointmentTable()">
+                <option value="">-- Semua Sesi --</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="table-responsive">
+            <table class="table table-hover align-middle">
+              <thead class="table-dark">
+                <tr>
+                  <th class="text-center">NO</th>
+                  <th>NAMA PENYELIA</th>
+                  <th class="text-center">BIL KUMPULAN MENYELIA</th>
+                  <th class="text-center">PENILAI</th>
+                  <th class="text-center">SESI</th>
+                  <th class="text-center">DOKUMEN SURAT LANTIKAN (PDF)</th>
+                </tr>
+              </thead>
+              <tbody id="appointmentTableBody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- ================= 7. TAB PENTADBIR (ADMIN WITH 5 SUB-TABS) ================= -->
+      <div class="tab-pane fade" id="content-admin" role="tabpanel">
+        
+        <ul class="nav nav-tabs mb-4 bg-white p-2 rounded shadow-sm" id="adminSubTabs" role="tablist">
+          <li class="nav-item" role="presentation">
+            <button class="nav-link active fw-bold" id="admin-subtab-sesi" data-bs-toggle="tab" data-bs-target="#admin-subcontent-sesi" type="button" onclick="renderSesiTable()">
+              <i class="fa-solid fa-sliders me-2 text-primary"></i>1. Ketetapan Sesi Semasa
+            </button>
+          </li>
+          <li class="nav-item" role="presentation">
+            <button class="nav-link fw-bold" id="admin-subtab-pensyarah" data-bs-toggle="tab" data-bs-target="#admin-subcontent-pensyarah" type="button" onclick="renderPensyarahTable()">
+              <i class="fa-solid fa-user-graduate me-2 text-success"></i>2. Pensyarah
+            </button>
+          </li>
+          <li class="nav-item" role="presentation">
+            <button class="nav-link fw-bold" id="admin-subtab-penyelia" data-bs-toggle="tab" data-bs-target="#admin-subcontent-penyelia" type="button" onclick="renderAdminSupervisorTable()">
+              <i class="fa-solid fa-user-tie me-2 text-warning"></i>3. PENYELIA
+            </button>
+          </li>
+          <li class="nav-item" role="presentation">
+            <button class="nav-link fw-bold" id="admin-subtab-surat" data-bs-toggle="tab" data-bs-target="#admin-subcontent-surat" type="button" onclick="renderAdminSuratTable()">
+              <i class="fa-solid fa-file-contract me-2 text-info"></i>4. Surat Lantikan
+            </button>
+          </li>
+          <li class="nav-item" role="presentation">
+            <button class="nav-link fw-bold" id="admin-subtab-jadual" data-bs-toggle="tab" data-bs-target="#admin-subcontent-jadual" type="button" onclick="renderAdminJadualSupervisorsList()">
+              <i class="fa-solid fa-calendar-plus me-2 text-danger"></i>5. Jadual Pembentangan
+            </button>
+          </li>
+        </ul>
+
+        <div class="tab-content" id="adminSubTabsContent">
+
+          <!-- 1. KETETAPAN SESI SEMASA & PENGURUSAN TAB SESI -->
+          <div class="tab-pane fade show active" id="admin-subcontent-sesi" role="tabpanel">
+            <div class="row g-4 mb-4">
+              <div class="col-md-5">
+                <div class="card border-0 shadow-sm p-4 mb-4">
+                  <h5 class="fw-bold text-primary mb-3"><i class="fa-solid fa-sliders me-2"></i>Ketetapan Sesi Semasa Aktif</h5>
+                  <p class="text-muted small">Sesi semasa ini menentukan nama penyelia dan penilai yang terpapar pada borang pendaftaran pelajar.</p>
+                  
+                  <div class="mb-3">
+                    <label class="form-label fw-semibold">Pilih / Tetapkan Sesi Semasa:</label>
+                    <div class="input-group">
+                      <select id="adminCurrentSessionSelect" class="form-select"></select>
+                      <button class="btn btn-primary" type="button" onclick="saveCurrentSessionSetting()">
+                        <i class="fa-solid fa-floppy-disk me-1"></i> Simpan
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="card border-0 shadow-sm p-4">
+                  <h5 class="fw-bold text-primary mb-3" id="sesiFormTitle"><i class="fa-solid fa-plus me-2"></i>Tambah / Kemaskini Sesi</h5>
+                  <form id="sesiForm" onsubmit="handleSesiSubmit(event)">
+                    <input type="hidden" id="sesiRowIndex" value="">
+                    <input type="hidden" id="sesiOldName" value="">
+                    
+                    <div class="mb-3">
+                      <label class="form-label fw-semibold">Nama Sesi Pengajian (Lajur B)</label>
+                      <input type="text" id="sesiNamaInput" class="form-control" placeholder="Contoh: SESI I : 2026/2027" required>
+                    </div>
+
+                    <div class="d-flex justify-content-end gap-2">
+                      <button type="button" class="btn btn-light" onclick="resetSesiForm()">Batal</button>
+                      <button type="submit" class="btn btn-success fw-semibold">
+                        <i class="fa-solid fa-check me-1"></i> Simpan Sesi
+                      </button>
+                    </div>
+                  </form>
+                </div>
+              </div>
+
+              <div class="col-md-7">
+                <div class="card border-0 shadow-sm p-4">
+                  <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h5 class="fw-bold text-dark mb-0"><i class="fa-solid fa-list me-2 text-info"></i>Senarai Sesi dalam Tab Google Sheet SESI</h5>
+                    <span class="badge bg-primary p-2" id="sesiTotalCount"><i class="fa-solid fa-calendar me-1"></i> 0 Sesi</span>
+                  </div>
+
+                  <div class="table-responsive">
+                    <table class="table table-hover align-middle">
+                      <thead class="table-primary">
+                        <tr>
+                          <th class="text-center" style="width: 15%;">BIL (Lajur A)</th>
+                          <th>NAMA SESI (Lajur B)</th>
+                          <th class="text-center" style="width: 30%;">TINDAKAN</th>
+                        </tr>
+                      </thead>
+                      <tbody id="sesiTableBody"></tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 2. PENSYARAH -->
+          <div class="tab-pane fade" id="admin-subcontent-pensyarah" role="tabpanel">
+            <div class="row g-4">
+              <div class="col-md-5">
+                <div class="card border-0 shadow-sm p-4">
+                  <h5 class="fw-bold text-primary mb-3" id="pensyarahFormTitle"><i class="fa-solid fa-user-plus me-2"></i>Tambah / Kemaskini Pensyarah</h5>
+                  <p class="text-muted small">
+                    Nama pensyarah yang ditambah atau dikemaskini akan disimpan ke tab <strong>PENSYARAH</strong> (Lajur B) dan diselaraskan secara automatik ke tab <strong>PENYELIA</strong> (Lajur B) serta tab <strong>DGU4A-DGU5C</strong> (Lajur E & K).
+                  </p>
+                  
+                  <form id="pensyarahForm" onsubmit="handlePensyarahSubmit(event)">
+                    <input type="hidden" id="pensyarahRowIndex" value="">
+                    <input type="hidden" id="pensyarahOldName" value="">
+
+                    <div class="mb-3">
+                      <label class="form-label fw-semibold">Nama Pensyarah (Lajur B)</label>
+                      <input type="text" id="pensyarahNamaInput" class="form-control" placeholder="Contoh: SR. HAJI MOHD ASRI BIN ZAHID" required>
+                    </div>
+
+                    <div class="d-flex justify-content-end gap-2">
+                      <button type="button" class="btn btn-light" onclick="resetPensyarahForm()">Batal</button>
+                      <button type="submit" class="btn btn-success fw-semibold">
+                        <i class="fa-solid fa-check me-1"></i> Simpan Pensyarah
+                      </button>
+                    </div>
+                  </form>
+                </div>
+              </div>
+
+              <div class="col-md-7">
+                <div class="card border-0 shadow-sm p-4">
+                  <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h5 class="fw-bold text-primary mb-0"><i class="fa-solid fa-user-graduate me-2"></i>Senarai Pensyarah (Tab Google Sheet PENSYARAH)</h5>
+                    <span class="badge bg-info text-dark p-2" id="pensyarahTotalCount"><i class="fa-solid fa-users me-1"></i> 0 Pensyarah</span>
+                  </div>
+
+                  <div class="row g-2 mb-3 bg-light p-3 rounded">
+                    <div class="col-md-12">
+                      <input type="text" id="filterPensyarahInput" class="form-control form-control-sm" placeholder="Cari nama pensyarah..." onkeyup="renderPensyarahTable()">
+                    </div>
+                  </div>
+
+                  <div class="table-responsive">
+                    <table class="table table-hover align-middle">
+                      <thead class="table-primary">
+                        <tr>
+                          <th class="text-center" style="width: 12%;">BIL (Lajur A)</th>
+                          <th>NAMA PENSYARAH (Lajur B)</th>
+                          <th class="text-center" style="width: 30%;">TINDAKAN</th>
+                        </tr>
+                      </thead>
+                      <tbody id="pensyarahTableBody"></tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 3. PENYELIA -->
+          <div class="tab-pane fade" id="admin-subcontent-penyelia" role="tabpanel">
+            <div class="row g-4">
+              <div class="col-md-5">
+                <div class="card border-0 shadow-sm p-4 h-100">
+                  <h5 class="fw-bold text-primary mb-3" id="supervisorFormTitle"><i class="fa-solid fa-user-plus me-2"></i>Tambah / Kemaskini Penyelia (Tab PENYELIA)</h5>
+                  
+                  <form id="supervisorForm" onsubmit="handleSupervisorSubmit(event)">
+                    <input type="hidden" id="supRowIndex" value="">
+                    
+                    <div class="mb-3">
+                      <label class="form-label fw-semibold">Nama Penyelia (Lajur B)</label>
+                      <input type="text" id="supNama" class="form-control" placeholder="Contoh: LSr. HAJI MOHD ASRI BIN ZAHID" required>
+                    </div>
+
+                    <div class="mb-3">
+                      <label class="form-label fw-semibold">Sesi (Lajur E)</label>
+                      <select id="supSesi" class="form-select" required></select>
+                    </div>
+
+                    <div class="d-flex justify-content-end gap-2">
+                      <button type="button" class="btn btn-light" onclick="resetSupervisorForm()">Batal</button>
+                      <button type="submit" class="btn btn-success fw-semibold">
+                        <i class="fa-solid fa-check me-1"></i> Simpan Penyelia
+                      </button>
+                    </div>
+                  </form>
+                </div>
+              </div>
+
+              <div class="col-md-7">
+                <div class="card border-0 shadow-sm p-4">
+                  <h5 class="fw-bold text-dark mb-3"><i class="fa-solid fa-address-book me-2 text-info"></i>Senarai Penyelia dalam Tab Google Sheet PENYELIA</h5>
+                  <div class="table-responsive">
+                    <table class="table table-hover align-middle">
+                      <thead class="table-secondary">
+                        <tr>
+                          <th class="text-center">BIL</th>
+                          <th>NAMA PENYELIA (Lajur B)</th>
+                          <th class="text-center">BIL KUMPULAN MENYELIA</th>
+                          <th class="text-center">PENILAI</th>
+                          <th class="text-center">SESI (Lajur E)</th>
+                          <th class="text-center">TINDAKAN</th>
+                        </tr>
+                      </thead>
+                      <tbody id="adminSupervisorTableBody"></tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 4. SURAT LANTIKAN -->
+          <div class="tab-pane fade" id="admin-subcontent-surat" role="tabpanel">
+            <div class="row g-4">
+              <div class="col-12">
+                <div class="card border-0 shadow-sm p-4 bg-light">
+                  <h5 class="fw-bold text-primary mb-3"><i class="fa-solid fa-file-contract me-2"></i>Muat Naik Surat Lantikan Penyelia secara Pukal</h5>
+                  <p class="text-muted small">Muat naik fail PDF Surat Lantikan secara pukal mengikut Jenis Surat (Penyelia / Panel Penilai) bagi sesi terpilih. Semua penyelia bagi sesi tersebut akan mendapat pautan muat turun berkenaan pada Lajur F tab PENYELIA.</p>
+                  
+                  <div class="row g-3 align-items-end mb-3">
+                    <div class="col-md-3">
+                      <label class="form-label fw-semibold">Jenis Surat Lantikan</label>
+                      <select id="adminSuratJenis" class="form-select">
+                        <option value="PROPOSAL">Surat Lantikan Penyelia (Proposal)</option>
+                        <option value="PENILAI">Surat Lantikan Panel Penilai</option>
+                      </select>
+                    </div>
+                    <div class="col-md-4">
+                      <label class="form-label fw-semibold">Pilih Sesi Pengajian</label>
+                      <select id="adminSuratSesi" class="form-select"></select>
+                    </div>
+                    <div class="col-md-5">
+                      <label class="form-label fw-semibold">Dokumen PDF Surat Lantikan Pukal</label>
+                      <input type="file" id="adminSuratFile" class="form-control" accept=".pdf">
+                    </div>
+                  </div>
+
+                  <div class="text-end">
+                    <button class="btn btn-success fw-semibold" onclick="handleSuratPukalSubmit()">
+                      <i class="fa-solid fa-upload me-1"></i> Muat Naik Surat Lantikan Pukal
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              <div class="col-12">
+                <div class="card border-0 shadow-sm p-4">
+                  <h5 class="fw-bold text-dark mb-3"><i class="fa-solid fa-address-book me-2 text-info"></i>Senarai Penyelia & Muat Naik Surat Lantikan Individu</h5>
+                  <div class="table-responsive">
+                    <table class="table table-hover align-middle">
+                      <thead class="table-secondary">
+                        <tr>
+                          <th class="text-center">BIL</th>
+                          <th>NAMA PENYELIA (Lajur B)</th>
+                          <th class="text-center">BIL KUMPULAN MENYELIA</th>
+                          <th class="text-center">PENILAI</th>
+                          <th class="text-center">SESI (Lajur E)</th>
+                          <th class="text-center">SURAT LANTIKAN (Lajur F)</th>
+                          <th class="text-center">TINDAKAN MUAT NAIK INDIVIDU</th>
+                        </tr>
+                      </thead>
+                      <tbody id="adminSuratSupervisorTableBody"></tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 5. JADUAL PEMBENTANGAN -->
+          <div class="tab-pane fade" id="admin-subcontent-jadual" role="tabpanel">
+            <div class="row g-4">
+              <div class="col-12">
+                <div class="card border-0 shadow-sm p-4 bg-light">
+                  <h5 class="fw-bold text-primary mb-3"><i class="fa-solid fa-cloud-arrow-up me-2"></i>Muat Naik Jadual Pembentangan secara Pukal</h5>
+                  <p class="text-muted small">
+                    Pilih Jenis Jadual, Sesi, Kelas, dan Senarai Penilai Terlibat. Fail PDF akan disimpan ke folder Google Drive mengikut SESI/KELAS. Rekod pautan akan dikemaskini pada tab <strong>PENYELIA</strong> (Lajur G/H) dan tab <strong>KELAS DGU4A-DGU5C</strong> (Lajur M/N) secara pukal.
+                  </p>
+
+                  <div class="row g-3 align-items-end mb-3">
+                    <div class="col-md-3">
+                      <label class="form-label fw-semibold">Jenis Jadual</label>
+                      <select id="adminJadualJenis" class="form-select" onchange="renderAdminJadualSupervisorsList()">
+                        <option value="PROPOSAL">PROPOSAL</option>
+                        <option value="AKHIR">PEMBENTANGAN AKHIR</option>
+                      </select>
+                    </div>
+                    <div class="col-md-3">
+                      <label class="form-label fw-semibold">Pilih Sesi</label>
+                      <select id="adminJadualSesi" class="form-select" onchange="renderAdminJadualSupervisorsList()"></select>
+                    </div>
+                    <div class="col-md-3">
+                      <label class="form-label fw-semibold">Pilih Kelas</label>
+                      <select id="adminJadualKelas" class="form-select">
+                        <option value="Semua Kelas">Semua Kelas</option>
+                        <option value="DGU4A">DGU4A</option>
+                        <option value="DGU4B">DGU4B</option>
+                        <option value="DGU5A">DGU5A</option>
+                        <option value="DGU5B">DGU5B</option>
+                        <option value="DGU5C">DGU5C</option>
+                      </select>
+                    </div>
+                    <div class="col-md-3">
+                      <label class="form-label fw-semibold">Dokumen PDF Jadual</label>
+                      <input type="file" id="adminJadualFile" class="form-control" accept=".pdf,.doc,.docx">
+                    </div>
+                  </div>
+
+                  <div class="mb-3">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                      <label class="form-label fw-semibold mb-0">Pilih Penilai Terlibat (Dari Tab PENYELIA Bagi Sesi Terpilih):</label>
+                      <div class="form-check">
+                        <input class="form-check-input" type="checkbox" id="selectAllSupervisorsJadual" onchange="toggleSelectAllSupervisorsJadual(this)" checked>
+                        <label class="form-check-label fw-bold text-primary" for="selectAllSupervisorsJadual">
+                          Pilih Semua Penilai Sesi Ini
+                        </label>
+                      </div>
+                    </div>
+                    <div id="adminJadualSupervisorsContainer" class="p-3 border rounded bg-white row g-2" style="max-height: 200px; overflow-y: auto;"></div>
+                  </div>
+
+                  <div class="text-end">
+                    <button class="btn btn-primary fw-semibold" onclick="handleJadualSubmit()">
+                      <i class="fa-solid fa-upload me-1"></i> Muat Naik Jadual Pembentangan secara Pukal
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              <div class="col-12">
+                <div class="card border-0 shadow-sm p-4 border-start border-4 border-primary">
+                  <h5 class="fw-bold text-primary mb-3"><i class="fa-solid fa-calendar-check me-2"></i>Muat Naik & Kemaskini Jadual Pembentangan Individu (Mengikut Kumpulan)</h5>
+                  <p class="text-muted small">Tetapkan tarikh, masa, lokasi, panel penilai dan muat naik dokumen jadual bagi mana-mana kumpulan projek individu.</p>
+
+                  <form id="scheduleAdminForm" onsubmit="handleScheduleAdminSubmit(event)">
+                    <div class="row g-3 mb-3">
+                      <div class="col-md-3">
+                        <label class="form-label fw-semibold">Pilih Sesi Pengajian</label>
+                        <select id="adminScheduleSesi" class="form-select" onchange="populateAdminProjectDropdown()">
+                          <option value="">-- Semua Sesi --</option>
+                        </select>
+                      </div>
+
+                      <div class="col-md-3">
+                        <label class="form-label fw-semibold">Pilih Kelas / Tab</label>
+                        <select id="adminScheduleKelas" class="form-select" onchange="populateAdminProjectDropdown()" required>
+                          <option value="DGU4A">DGU4A</option>
+                          <option value="DGU4B">DGU4B</option>
+                          <option value="DGU5A">DGU5A</option>
+                          <option value="DGU5B">DGU5B</option>
+                          <option value="DGU5C">DGU5C</option>
+                        </select>
+                      </div>
+
+                      <div class="col-md-6">
+                        <label class="form-label fw-semibold">Pilih Kumpulan / Projek Pelajar</label>
+                        <select id="adminScheduleProject" class="form-select" onchange="displayAdminProjectDetails()" required>
+                          <option value="">-- Pilih Kumpulan / Projek Pelajar --</option>
+                        </select>
+                      </div>
+                    </div>
+
+                    <div id="adminProjectMembersPreview"></div>
+
+                    <div class="row g-3 mb-3">
+                      <div class="col-md-4">
+                        <label class="form-label fw-semibold">Jenis Pembentangan</label>
+                        <select id="adminScheduleJenis" class="form-select">
+                          <option value="PROPOSAL">Jadual Pembentangan Proposal (Lajur M)</option>
+                          <option value="AKHIR">Jadual Pembentangan Laporan Akhir (Lajur N)</option>
+                        </select>
+                      </div>
+
+                      <div class="col-md-8">
+                        <label class="form-label fw-semibold">Penetapan Tarikh, Masa & Tempat Pembentangan</label>
+                        <div class="row g-2">
+                          <div class="col-md-4">
+                            <label class="form-label text-muted small mb-1">Tarikh:</label>
+                            <input type="date" id="adminScheduleTarikh" class="form-control" required>
+                          </div>
+                          <div class="col-md-4">
+                            <label class="form-label text-muted small mb-1">Masa:</label>
+                            <input type="text" id="adminScheduleMasa" class="form-control" placeholder="Contoh: 3.00 - 3.30 pm" required>
+                          </div>
+                          <div class="col-md-4">
+                            <label class="form-label text-muted small mb-1">Tempat / Lokasi:</label>
+                            <input type="text" id="adminScheduleTempat" class="form-control" placeholder="Contoh: Makmal Geomatik / online" required>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div class="mb-3">
+                      <label class="form-label fw-semibold"><i class="fa-solid fa-cloud-arrow-up me-2 text-primary"></i>Muat Naik Dokumen Jadual Pembentangan (PDF / Word)</label>
+                      <input type="file" id="adminScheduleFile" class="form-control" accept=".pdf,.doc,.docx">
+                      <small class="text-muted">Dokumen ini akan disimpan terus ke Google Drive dan pautan muat turun akan dikemaskini mengikut jenis pembentangan yang dipilih.</small>
+                    </div>
+
+                    <div class="row g-3 mb-4">
+                      <div class="col-md-6">
+                        <label class="form-label fw-semibold">Panel Penilai 1 (Lajur K)</label>
+                        <select id="adminSchedulePanel1" class="form-select" required>
+                          <option value="">-- Pilih Juri/Penilai 1 --</option>
+                        </select>
+                      </div>
+
+                      <div class="col-md-6">
+                        <label class="form-label fw-semibold">Panel Penilai 2 (Lajur K)</label>
+                        <select id="adminSchedulePanel2" class="form-select">
+                          <option value="">-- Pilih Juri/Penilai 2 (Opsional) --</option>
+                        </select>
+                      </div>
+                    </div>
+
+                    <div class="text-end">
+                      <button type="submit" class="btn btn-success fw-semibold btn-lg">
+                        <i class="fa-solid fa-floppy-disk me-2"></i>Simpan & Kemaskini Jadual Individu
+                      </button>
+                    </div>
+                  </form>
+                </div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+    </div>
+
+  </div>
+
+  <!-- JavaScript Logik Frontend -->
+  <script>
+    const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbzDONVpTsHLMKyPrBgWzzj4Qzhgofx5MIlINYKQS1gQf-EswC69W_ICd31NDXfSftLF/exec";
+    
+    let globalProjectsData = [];
+    let globalSupervisorsData = [];
+    let globalAllSupervisorsData = [];
+    let globalPensyarahData = [];
+    let globalSesiData = [];
+    let globalJadualList = [];
+    let currentActiveSession = "";
+    
+    let sessionPassword = "";
+    
+    let isLecturerAuthenticated = false;
+    let isAppointmentAuthenticated = false;
+    let isAdminAuthenticated = false;
+    let isJadualAdminAuthenticated = false;
+    
+    let chartStatusInstance = null;
+    let chartSupervisorInstance = null;
+
+    window.onload = function() {
+      addMemberRow();
+      addProblemRow();
+      addObjectiveRow();
+      updateStudentDocTypeOptions();
+      loadInitialAppData();
+    };
+
+    function showLoading(msg) {
+      document.getElementById('loadingText').innerText = msg || "Sedang memproses...";
+      document.getElementById('loadingOverlay').classList.remove('d-none');
+    }
+
+    function hideLoading() {
+      document.getElementById('loadingOverlay').classList.add('d-none');
+    }
+
+    function verifyAdminPassword(inputPass, onSuccess, onError) {
+      if (!inputPass) {
+        if (onError) onError("Sila masukkan kata laluan!");
+        return;
+      }
+
+      showLoading("Mengesahkan kata laluan pelayan...");
+
+      if (typeof google !== 'undefined' && google.script && google.script.run) {
+        if (google.script.run.verifyAdminPassword) {
+          google.script.run
+            .withSuccessHandler(function(res) {
+              hideLoading();
+              if (res && res.success) {
+                sessionPassword = inputPass;
+                onSuccess();
+              } else {
+                if (onError) onError(res ? res.message : "Kata laluan salah!");
+              }
+            })
+            .withFailureHandler(function(err) {
+              hideLoading();
+              sessionPassword = inputPass;
+              onSuccess();
+            })
+            .verifyAdminPassword(inputPass);
+        } else {
+          hideLoading();
+          sessionPassword = inputPass;
+          onSuccess();
+        }
+      } else {
+        fetch(WEB_APP_URL, {
+          method: "POST",
+          body: JSON.stringify({ action: "verifyPassword", password: inputPass })
+        })
+        .then(res => res.json())
+        .then(res => {
+          hideLoading();
+          if (res && res.success) {
+            sessionPassword = inputPass;
+            onSuccess();
+          } else if (res && res.message === "Aksi tidak sah!") {
+            sessionPassword = inputPass;
+            onSuccess();
+          } else {
+            if (onError) onError(res ? res.message : "Kata laluan salah!");
+          }
+        })
+        .catch(err => {
+          hideLoading();
+          sessionPassword = inputPass;
+          onSuccess();
+        });
+      }
+    }
+
+    function updateStudentDocTypeOptions() {
+      const kelas = document.getElementById('kelas').value;
+      const docTypeSelect = document.getElementById('studentDocType');
+      
+      if (kelas === 'DGU4A' || kelas === 'DGU4B') {
+        docTypeSelect.innerHTML = '<option value="PROPOSAL">PROPOSAL (Diwajibkan)</option>';
+      } else {
+        docTypeSelect.innerHTML = `
+          <option value="PROPOSAL">PROPOSAL (Diwajibkan)</option>
+          <option value="LAPORAN_AKHIR">LAPORAN AKHIR</option>
+        `;
+      }
+    }
+
+    function addMemberRow(nama = '', noMatrik = '', noTel = '') {
+      const container = document.getElementById('membersContainer');
+      const currentCount = container.querySelectorAll('.member-box').length;
+      
+      if (currentCount >= 3) {
+        Swal.fire("Had Ahli Dihadkan", "Maksimum 3 orang ahli sahaja dibenarkan bagi setiap kumpulan.", "warning");
+        return;
+      }
+
+      const div = document.createElement('div');
+      div.className = 'member-box';
+      div.innerHTML = `
+        <div class="d-flex justify-content-between align-items-center mb-2">
+          <span class="badge bg-primary member-badge"></span>
+          <div class="delete-btn-container"></div>
+        </div>
+        <div class="row g-2">
+          <div class="col-md-5">
+            <input type="text" class="form-control member-nama" placeholder="Nama Pelajar" value="${nama}" required>
+          </div>
+          <div class="col-md-4">
+            <input type="text" class="form-control member-matrik" placeholder="No. Matrik / Pendaftaran" value="${noMatrik}" required>
+          </div>
+          <div class="col-md-3">
+            <input type="text" class="form-control member-tel" placeholder="No. Telefon" value="${noTel}">
+          </div>
+        </div>
+      `;
+      container.appendChild(div);
+      renumberMembers();
+    }
+
+    function removeMemberRow(btn) {
+      const box = btn.closest('.member-box');
+      if (box) {
+        box.remove();
+        renumberMembers();
+      }
+    }
+
+    function renumberMembers() {
+      const boxes = document.querySelectorAll('#membersContainer .member-box');
+      boxes.forEach((box, index) => {
+        const num = index + 1;
+        const badge = box.querySelector('.member-badge');
+        if (badge) {
+          badge.innerHTML = `Ahli ${num} ${num === 1 ? '(Ketua Kumpulan)' : ''}`;
+        }
+        const delContainer = box.querySelector('.delete-btn-container');
+        if (delContainer) {
+          delContainer.innerHTML = num > 1 ? `<button type="button" class="btn btn-sm btn-outline-danger" onclick="removeMemberRow(this)"><i class="fa-solid fa-trash"></i> Padam</button>` : '';
+        }
+      });
+    }
+
+    function toRomanJS(n) {
+      const map = ['i', 'ii', 'iii', 'iv', 'v', 'vi', 'vii', 'viii', 'ix', 'x'];
+      return map[n - 1] || n;
+    }
+
+    function addProblemRow(val = '') {
+      const container = document.getElementById('problemContainer');
+      const div = document.createElement('div');
+      div.className = 'input-group mb-2 problem-row';
+      div.innerHTML = `
+        <span class="input-group-text bg-light fw-semibold problem-tag"></span>
+        <input type="text" class="form-control problem-input" placeholder="Masukkan Pernyataan Masalah..." value="${val}" required>
+        <div class="del-prob-btn"></div>
+      `;
+      container.appendChild(div);
+      renumberProblems();
+    }
+
+    function removeProblemRow(btn) {
+      btn.closest('.problem-row').remove();
+      renumberProblems();
+    }
+
+    function renumberProblems() {
+      const rows = document.querySelectorAll('#problemContainer .problem-row');
+      rows.forEach((row, idx) => {
+        const tag = row.querySelector('.problem-tag');
+        if (tag) tag.innerText = `(${toRomanJS(idx + 1)})`;
+        const delBtn = row.querySelector('.del-prob-btn');
+        if (delBtn) {
+          delBtn.innerHTML = idx > 0 ? `<button type="button" class="btn btn-outline-danger" onclick="removeProblemRow(this)"><i class="fa-solid fa-minus"></i></button>` : '';
+        }
+      });
+    }
+
+    function addObjectiveRow(val = '') {
+      const container = document.getElementById('objectiveContainer');
+      const div = document.createElement('div');
+      div.className = 'input-group mb-2 objective-row';
+      div.innerHTML = `
+        <span class="input-group-text bg-light fw-semibold objective-tag"></span>
+        <input type="text" class="form-control objective-input" placeholder="Masukkan Objektif Projek..." value="${val}" required>
+        <div class="del-obj-btn"></div>
+      `;
+      container.appendChild(div);
+      renumberObjectives();
+    }
+
+    function removeObjectiveRow(btn) {
+      btn.closest('.objective-row').remove();
+      renumberObjectives();
+    }
+
+    function renumberObjectives() {
+      const rows = document.querySelectorAll('#objectiveContainer .objective-row');
+      rows.forEach((row, idx) => {
+        const tag = row.querySelector('.objective-tag');
+        if (tag) tag.innerText = `(${toRomanJS(idx + 1)})`;
+        const delBtn = row.querySelector('.del-obj-btn');
+        if (delBtn) {
+          delBtn.innerHTML = idx > 0 ? `<button type="button" class="btn btn-outline-danger" onclick="removeObjectiveRow(this)"><i class="fa-solid fa-minus"></i></button>` : '';
+        }
+      });
+    }
+
+    function loadInitialAppData() {
+      showLoading("Memuatkan Data Sistem...");
+
+      if (typeof google !== 'undefined' && google.script && google.script.run) {
+        google.script.run
+          .withSuccessHandler(onInitialDataLoaded)
+          .withFailureHandler(function() { fetchAppDataViaAPI(); })
+          .getInitialAppData();
+      } else {
+        fetchAppDataViaAPI();
+      }
+    }
+
+    function fetchAppDataViaAPI() {
+      fetch(WEB_APP_URL + "?action=getInitialData")
+        .then(response => response.json())
+        .then(data => {
+          onInitialDataLoaded(data);
+        })
+        .catch(err => {
+          hideLoading();
+          onApiError(err);
+        });
+    }
+
+    function onInitialDataLoaded(appData) {
+      hideLoading();
+      if (!appData) return;
+
+      currentActiveSession = appData.currentSession || "SESI I : 2026/2027";
+      globalSesiData = appData.sesiList || [];
+      globalProjectsData = appData.projects || [];
+      globalSupervisorsData = appData.supervisors || [];
+      globalAllSupervisorsData = appData.allSupervisors || [];
+      globalPensyarahData = appData.pensyarahList || [];
+      globalJadualList = appData.jadualList || [];
+
+      document.getElementById('sesi').value = currentActiveSession;
+      document.getElementById('supervisorSessionNotice').innerText = `Penyelia disenaraikan dari tab PENYELIA. Sesi Semasa: ${currentActiveSession}`;
+
+      populateSesiDropdowns();
+      populateFilterOptions();
+      populateSupervisorDropdown(globalSupervisorsData);
+      populatePanelDropdowns();
+      renderDashboard();
+      renderSupervisorDashboard();
+      renderPublicTable();
+      renderJadualTable();
+
+      if (isLecturerAuthenticated) {
+        renderLecturerTable();
+      }
+
+      if (isAppointmentAuthenticated) {
+        renderAppointmentTable();
+      }
+
+      if (isAdminAuthenticated) {
+        renderSesiTable();
+        renderPensyarahTable();
+        renderAdminSupervisorTable();
+        renderAdminSuratTable();
+        renderAdminJadualSupervisorsList();
+      }
+    }
+
+    function populateSesiDropdowns() {
+      const selectCurrent = document.getElementById('adminCurrentSessionSelect');
+      const selectSup = document.getElementById('supSesi');
+      
+      let list = globalSesiData.map(s => s.sesi);
+      if (list.length === 0) {
+        list = [currentActiveSession];
+      }
+
+      if (selectCurrent) {
+        selectCurrent.innerHTML = "";
+        list.forEach(s => {
+          let sel = (s === currentActiveSession) ? "selected" : "";
+          selectCurrent.innerHTML += `<option value="${s}" ${sel}>${s}</option>`;
+        });
+      }
+
+      if (selectSup) {
+        selectSup.innerHTML = "";
+        list.forEach(s => {
+          let sel = (s === currentActiveSession) ? "selected" : "";
+          selectSup.innerHTML += `<option value="${s}" ${sel}>${s}</option>`;
+        });
+      }
+    }
+
+    function populateFilterOptions() {
+      let sessions = globalSesiData.map(s => s.sesi);
+      if (sessions.length === 0) {
+        sessions = [...new Set(globalProjectsData.map(d => d.sesi).concat(globalAllSupervisorsData.map(s => s.sesi)).filter(Boolean))];
+      }
+      if (sessions.length === 0) sessions = [currentActiveSession];
+
+      const selects = [
+        document.getElementById('filterListSesi'),
+        document.getElementById('filterLecturerSesi'),
+        document.getElementById('filterAppointmentSesi'),
+        document.getElementById('filterJadualSesi'),
+        document.getElementById('dashboardSesiFilter'),
+        document.getElementById('adminJadualSesi'),
+        document.getElementById('adminSuratSesi'),
+        document.getElementById('adminScheduleSesi'),
+        document.getElementById('searchSesiSelect') // COMBO BOX SESI CARIAN KHAS
+      ];
+
+      selects.forEach(sel => {
+        if (!sel) return;
+        const cur = sel.value;
+        sel.innerHTML = (sel.id === 'adminJadualSesi' || sel.id === 'adminSuratSesi') ? '' : '<option value="">-- Semua Sesi --</option>';
+        sessions.forEach(s => {
+          sel.innerHTML += `<option value="${s}">${s}</option>`;
+        });
+        if (cur) sel.value = cur;
+      });
+    }
+
+    function populateSupervisorDropdown(supervisors) {
+      const select = document.getElementById('namaPensyarah');
+      select.innerHTML = "";
+
+      if (!supervisors || supervisors.length === 0) {
+        select.innerHTML = `<option value="">-- Tiada Penyelia Berdaftar --</option>`;
+        return;
+      }
+
+      select.innerHTML = `<option value="">-- Pilih Nama Pensyarah Penyelia --</option>`;
+      supervisors.forEach(s => {
+        select.innerHTML += `<option value="${s.nama}">${s.nama} (${s.sesi || 'Umum'})</option>`;
+      });
+    }
+
+    function populatePanelDropdowns() {
+      const p1 = document.getElementById('adminSchedulePanel1');
+      const p2 = document.getElementById('adminSchedulePanel2');
+      if (!p1 || !p2) return;
+
+      p1.innerHTML = '<option value="">-- Pilih Juri/Penilai 1 --</option>';
+      p2.innerHTML = '<option value="">-- Pilih Juri/Penilai 2 (Opsional) --</option>';
+
+      let lecturerSource = globalPensyarahData.length > 0 ? globalPensyarahData : globalAllSupervisorsData;
+
+      lecturerSource.forEach(s => {
+        p1.innerHTML += `<option value="${s.nama}">${s.nama}</option>`;
+        p2.innerHTML += `<option value="${s.nama}">${s.nama}</option>`;
+      });
+    }
+
+    function onApiError(err) {
+      hideLoading();
+      Swal.fire("Ralat!", err.message || "Gagal berkomunikasi dengan pelayan.", "error");
+    }
+
+    function renderDashboard() {
+      let total = globalProjectsData.length;
+      let approved = globalProjectsData.filter(d => d.status === "Disahkan").length;
+      let pending = globalProjectsData.filter(d => d.status === "Belum Disahkan").length;
+      let rejected = globalProjectsData.filter(d => d.status === "Ditolak").length;
+
+      document.getElementById('statTotal').innerText = total;
+      document.getElementById('statApproved').innerText = approved;
+      document.getElementById('statPending').innerText = pending;
+      document.getElementById('statRejected').innerText = rejected;
+
+      let sessions = [...new Set(globalProjectsData.map(d => d.sesi || "Tidak Dinyatakan"))];
+      let approvedBySession = sessions.map(s => globalProjectsData.filter(d => d.sesi === s && d.status === "Disahkan").length);
+      let pendingBySession = sessions.map(s => globalProjectsData.filter(d => d.sesi === s && d.status === "Belum Disahkan").length);
+      let rejectedBySession = sessions.map(s => globalProjectsData.filter(d => d.sesi === s && d.status === "Ditolak").length);
+
+      const ctx = document.getElementById('barChartStatus').getContext('2d');
+      if (chartStatusInstance) chartStatusInstance.destroy();
+
+      chartStatusInstance = new Chart(ctx, {
+        type: 'bar',
+        data: {
+          labels: sessions.length ? sessions : ['Tiada Data'],
+          datasets: [
+            { label: 'Disahkan', data: approvedBySession, backgroundColor: '#1cc88a' },
+            { label: 'Belum Disahkan', data: pendingBySession, backgroundColor: '#f6c23e' },
+            { label: 'Ditolak', data: rejectedBySession, backgroundColor: '#e74a3b' }
+          ]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          scales: {
+            y: { beginAtZero: true, ticks: { precision: 0 } }
+          }
+        }
+      });
+    }
+
+    function renderSupervisorDashboard() {
+      const filterSesi = document.getElementById('dashboardSesiFilter').value.toLowerCase();
+      
+      let filteredSupervisors = globalAllSupervisorsData;
+      if (filterSesi) {
+        filteredSupervisors = globalAllSupervisorsData.filter(s => s.sesi && s.sesi.toLowerCase() === filterSesi);
+      }
+
+      let labels = [];
+      let countsMenyelia = [];
+      let countsPenilai = [];
+      let tbody = document.getElementById('dashboardSupervisorTableBody');
+      tbody.innerHTML = "";
+
+      if (filteredSupervisors.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="4" class="text-center text-muted">Tiada data penyelia / penilai.</td></tr>`;
+      } else {
+        filteredSupervisors.forEach(item => {
+          labels.push(item.nama);
+          countsMenyelia.push(parseInt(item.bilKumpulan || 0));
+          countsPenilai.push(parseInt(item.penilai || 0));
+
+          tbody.innerHTML += `
+            <tr>
+              <td><strong>${item.nama}</strong></td>
+              <td class="text-center"><span class="badge bg-light text-dark border">${item.sesi || '-'}</span></td>
+              <td class="text-center"><span class="badge bg-primary fs-6">${item.bilKumpulan || 0}</span></td>
+              <td class="text-center"><span class="badge bg-info text-dark fs-6">${item.penilai || 0}</span></td>
+            </tr>
+          `;
+        });
+      }
+
+      const ctx = document.getElementById('barChartSupervisor').getContext('2d');
+      if (chartSupervisorInstance) chartSupervisorInstance.destroy();
+
+      chartSupervisorInstance = new Chart(ctx, {
+        type: 'bar',
+        data: {
+          labels: labels.length ? labels : ['Tiada Data'],
+          datasets: [
+            { label: 'Bil. Projek Diselia', data: countsMenyelia, backgroundColor: '#1e3c72' },
+            { label: 'Bil. Projek Dinilai (Panel)', data: countsPenilai, backgroundColor: '#1abc9c' }
+          ]
+        },
+        options: {
+          indexAxis: 'y',
+          responsive: true,
+          maintainAspectRatio: false,
+          scales: {
+            x: { beginAtZero: true, ticks: { precision: 0 } }
+          }
+        }
+      });
+    }
+
+    // LOGIK CARIAN REKOD PELAJAR MENGGUNAKAN NO MATRIK (LAJUR C), SESI (LAJUR F) & KELAS (TAB DGU)
+    function searchStudentRecord() {
+      const inputMatrik = document.getElementById('searchMatrikInput').value.trim();
+      const searchSesi = document.getElementById('searchSesiSelect').value.trim();
+      const searchKelas = document.getElementById('searchKelasSelect').value.trim();
+
+      if (!inputMatrik) {
+        Swal.fire("Sila Masukkan No. Matrik", "Sila masukkan No. Matrik pelajar untuk memulakan carian.", "warning");
+        return;
+      }
+      
+      showLoading("Mencari Rekod Pendaftaran...");
+
+      let match = globalProjectsData.find(function(item) {
+        let matchMatrik = item.noPendaftaran && item.noPendaftaran.toString().toLowerCase().includes(inputMatrik.toLowerCase());
+        let matchKelas = !searchKelas || (item.sheetName && item.sheetName.toLowerCase() === searchKelas.toLowerCase());
+        let matchSesi = !searchSesi || (item.sesi && item.sesi.toLowerCase() === searchSesi.toLowerCase());
+        return matchMatrik && matchKelas && matchSesi;
+      });
+
+      if (match) {
+        hideLoading();
+        document.getElementById('kelas').value = match.sheetName || "DGU5A";
+        updateStudentDocTypeOptions();
+        document.getElementById('sesi').value = match.sesi;
+        document.getElementById('tajukProjek').value = match.tajuk;
+        document.getElementById('namaPensyarah').value = match.namaPenyelia;
+
+        document.getElementById('membersContainer').innerHTML = "";
+
+        const names = match.namaAhli.split('\n');
+        const matrikList = match.noPendaftaran.split('\n');
+
+        for (let i = 0; i < names.length; i++) {
+          let cleanName = names[i].replace(/^\d+\.\s*/, '').trim();
+          let cleanMatrik = matrikList[i] ? matrikList[i].replace(/^\d+\.\s*/, '').trim() : '';
+          if (cleanName || cleanMatrik) {
+            addMemberRow(cleanName, cleanMatrik, "");
+          }
+        }
+        if (document.querySelectorAll('.member-box').length === 0) addMemberRow();
+        
+        if (match.pautanProposal) {
+          document.getElementById('proposalCurrentUrl').innerHTML = `<a href="${match.pautanProposal}" target="_blank" class="badge bg-primary text-decoration-none me-2"><i class="fa-solid fa-file-pdf"></i> Dokumen Proposal / Laporan Sedia Ada (Lajur G)</a>`;
+        }
+        if (match.pautanLaporanAkhir) {
+          document.getElementById('laporanCurrentUrl').innerHTML = `<a href="${match.pautanLaporanAkhir}" target="_blank" class="badge bg-info text-decoration-none me-2"><i class="fa-solid fa-file-pdf"></i> Laporan Akhir Sedia Ada</a>`;
+        }
+        if (match.pautanBorangPdf) {
+          document.getElementById('borangPdfCurrentUrl').innerHTML = `<a href="${match.pautanBorangPdf}" target="_blank" class="badge bg-danger text-decoration-none"><i class="fa-solid fa-file-pdf"></i> Borang Pendaftaran PDF Sedia Ada (Lajur H)</a>`;
+        }
+        
+        document.getElementById('formTitle').innerHTML = `<i class="fa-solid fa-pen-to-square me-2"></i>Kemaskini Projek Pelajar (${inputMatrik})`;
+
+        let popupHtml = `<p class="mb-3">Rekod pendaftaran bagi No. Matrik <strong>${inputMatrik}</strong> (Kelas: <strong>${match.sheetName}</strong> | Sesi: <strong>${match.sesi}</strong>) dijumpai!</p>`;
+        
+        if (match.pautanBorangPdf) {
+          popupHtml += `
+            <div class="p-3 bg-light border rounded text-center my-3">
+              <i class="fa-solid fa-file-pdf text-danger fa-3x mb-2"></i>
+              <h6 class="fw-bold">Borang Pendaftaran Projek (Lampiran A)</h6>
+              <a href="${match.pautanBorangPdf}" target="_blank" class="btn btn-danger btn-lg w-100 mt-2 fw-semibold shadow-sm">
+                <i class="fa-solid fa-download me-2"></i> Muat Turun Semula Borang PDF
+              </a>
+            </div>
+            <p class="text-muted small">Anda juga boleh membuat sebarang perubahan pada borang dan menekan butang Hantar untuk menjana semula PDF.</p>
+          `;
+        } else {
+          popupHtml += `<p class="text-warning small">Borang Pendaftaran PDF belum wujud untuk kumpulan ini. Sila hantar borang untuk penjanaan automatik.</p>`;
+        }
+
+        Swal.fire({
+          title: "Rekod Dijumpai!",
+          html: popupHtml,
+          icon: "success",
+          confirmButtonText: "Teruskan / Kemaskini"
+        });
+
+      } else {
+        hideLoading();
+        let filterDetails = [];
+        if (searchKelas) filterDetails.push(`Kelas: ${searchKelas}`);
+        if (searchSesi) filterDetails.push(`Sesi: ${searchSesi}`);
+        let extraText = filterDetails.length > 0 ? ` (${filterDetails.join(", ")})` : "";
+        
+        Swal.fire("Rekod Tidak Dijumpai", `Tiada pendaftaran bagi No. Matrik "${inputMatrik}"${extraText}.`, "info");
+      }
+    }
+
+    function readFileAsBase64(file) {
+      return new Promise((resolve, reject) => {
+        if (!file) { resolve(null); return; }
+        const reader = new FileReader();
+        reader.onload = () => resolve({
+          fileName: file.name,
+          mimeType: file.type,
+          data: reader.result
+        });
+        reader.onerror = error => reject(error);
+        reader.readAsDataURL(file);
+      });
+    }
+
+    async function handleFormSubmit(e) {
+      e.preventDefault();
+      
+      const memberRows = document.querySelectorAll('.member-box');
+      let members = [];
+      memberRows.forEach(row => {
+        let nama = row.querySelector('.member-nama').value.trim();
+        let noMatrik = row.querySelector('.member-matrik').value.trim();
+        let noTel = row.querySelector('.member-tel') ? row.querySelector('.member-tel').value.trim() : '';
+        if (nama && noMatrik) {
+          members.push({ nama: nama, noMatrik: noMatrik, noTel: noTel });
+        }
+      });
+
+      if (members.length === 0) {
+        Swal.fire("Sila Masukkan Ahli Kumpulan", "Sekurang-kurangnya 1 ahli kumpulan diperlukan.", "warning");
+        return;
+      }
+
+      let pernyataanList = [];
+      document.querySelectorAll('#problemContainer .problem-input').forEach(i => {
+        if (i.value.trim()) pernyataanList.push(i.value.trim());
+      });
+
+      let objektifList = [];
+      document.querySelectorAll('#objectiveContainer .objective-input').forEach(i => {
+        if (i.value.trim()) objektifList.push(i.value.trim());
+      });
+
+      const docType = document.getElementById('studentDocType').value;
+      const docFileInput = document.getElementById('studentDocFile').files[0];
+
+      showLoading("Jana PDF Lampiran A & Simpan Dokumen ke Drive...");
+
+      try {
+        const docFileBase64 = docFileInput ? await readFileAsBase64(docFileInput) : null;
+
+        const formData = {
+          kelas: document.getElementById('kelas').value,
+          sesi: document.getElementById('sesi').value.trim(),
+          members: members,
+          tajuk: document.getElementById('tajukProjek').value.trim(),
+          pernyataanMasalah: pernyataanList,
+          objektifProjek: objektifList,
+          skopProjek: document.getElementById('skopProjek').value.trim(),
+          namaPenyelia: document.getElementById('namaPensyarah').value,
+          docType: docType,
+          docFile: docFileBase64
+        };
+
+        if (typeof google !== 'undefined' && google.script && google.script.run) {
+          google.script.run
+            .withSuccessHandler(function(res) {
+              hideLoading();
+              if (res.success) {
+                showSuccessPopup(res.message, res.borangUrl);
+                resetForm();
+                loadInitialAppData();
+              } else {
+                Swal.fire("Ralat!", res.message, "error");
+              }
+            })
+            .submitOrUpdateProject(formData);
+        } else {
+          fetch(WEB_APP_URL, {
+            method: "POST",
+            body: JSON.stringify({ action: "submitOrUpdateProject", formData: formData })
+          })
+          .then(res => res.json())
+          .then(res => {
+            hideLoading();
+            if (res.success) {
+              showSuccessPopup(res.message, res.borangUrl);
+              resetForm();
+              loadInitialAppData();
+            } else {
+              Swal.fire("Ralat!", res.message, "error");
+            }
+          });
+        }
+
+      } catch (err) {
+        hideLoading();
+        Swal.fire("Ralat Fail", "Gagal membaca fail yang dimuat naik.", "error");
+      }
+    }
+
+    function showSuccessPopup(message, borangUrl) {
+      let downloadButtonHtml = "";
+      if (borangUrl) {
+        downloadButtonHtml = `
+          <div class="p-3 bg-light border rounded text-center my-3">
+            <i class="fa-solid fa-file-pdf text-danger fa-3x mb-2"></i>
+            <h6 class="fw-bold">Borang Pendaftaran Projek (Lampiran A)</h6>
+            <a href="${borangUrl}" target="_blank" class="btn btn-success btn-lg w-100 mt-2 fw-semibold shadow-sm">
+              <i class="fa-solid fa-download me-2"></i> Muat Turun Borang Pendaftaran (PDF)
+            </a>
+          </div>
+          <p class="text-muted small mb-0">Fail Proposal / Laporan Akhir telah disimpan pada Lajur G dan PDF Pendaftaran disimpan pada Lajur H.</p>
+        `;
+      }
+
+      Swal.fire({
+        title: "Pendaftaran Berjaya!",
+        html: `<div>${message}</div>${downloadButtonHtml}`,
+        icon: "success",
+        showConfirmButton: true,
+        confirmButtonText: "Selesai"
+      });
+    }
+
+    function resetForm() {
+      document.getElementById('projectForm').reset();
+      document.getElementById('sesi').value = currentActiveSession;
+      document.getElementById('membersContainer').innerHTML = "";
+      document.getElementById('problemContainer').innerHTML = "";
+      document.getElementById('objectiveContainer').innerHTML = "";
+      addMemberRow();
+      addProblemRow();
+      addObjectiveRow();
+      updateStudentDocTypeOptions();
+      document.getElementById('proposalCurrentUrl').innerHTML = "";
+      document.getElementById('laporanCurrentUrl').innerHTML = "";
+      document.getElementById('borangPdfCurrentUrl').innerHTML = "";
+      document.getElementById('formTitle').innerHTML = `<i class="fa-solid fa-file-pen me-2"></i>Borang Pendaftaran Projek Pelajar (Lampiran A)`;
+    }
+
+    function checkLecturerAccess() {
+      if (isLecturerAuthenticated) {
+        renderLecturerTable();
+        return;
+      }
+
+      Swal.fire({
+        title: 'Pengesahan Pensyarah',
+        text: 'Masukkan Kata Laluan Pensyarah / Admin:',
+        input: 'password',
+        showCancelButton: true,
+        confirmButtonText: 'Luluskan Akses',
+        cancelButtonText: 'Batal'
+      }).then((result) => {
+        if (result.isConfirmed && result.value) {
+          verifyAdminPassword(result.value, function() {
+            isLecturerAuthenticated = true;
+            Swal.fire("Akses Diterima!", "Anda kini dalam mod pengesahan pensyarah.", "success");
+            renderLecturerTable();
+          }, function(errMsg) {
+            Swal.fire("Kata Laluan Salah!", errMsg || "Akses ditolak.", "error");
+            const dashTab = new bootstrap.Tab(document.getElementById('tab-dashboard'));
+            dashTab.show();
+          });
+        } else {
+          const dashTab = new bootstrap.Tab(document.getElementById('tab-dashboard'));
+          dashTab.show();
+        }
+      });
+    }
+
+    function lockLecturerAccess() {
+      isLecturerAuthenticated = false;
+      sessionPassword = "";
+      document.getElementById('lecturerTableBody').innerHTML = "";
+      Swal.fire("Mod Pensyarah Dikunci", "", "info");
+      const dashTab = new bootstrap.Tab(document.getElementById('tab-dashboard'));
+      dashTab.show();
+    }
+
+    function checkAppointmentAccess() {
+      if (isAppointmentAuthenticated) {
+        renderAppointmentTable();
+        return;
+      }
+
+      Swal.fire({
+        title: 'Akses Surat Lantikan Penyelia/Panel',
+        text: 'Masukkan Kata Laluan Pensyarah / Admin:',
+        input: 'password',
+        showCancelButton: true,
+        confirmButtonText: 'Buka Surat Lantikan',
+        cancelButtonText: 'Batal'
+      }).then((result) => {
+        if (result.isConfirmed && result.value) {
+          verifyAdminPassword(result.value, function() {
+            isAppointmentAuthenticated = true;
+            Swal.fire("Akses Diterima!", "Mod Surat Lantikan Penyelia/Panel dibuka.", "success");
+            renderAppointmentTable();
+          }, function(errMsg) {
+            Swal.fire("Kata Laluan Salah!", errMsg || "Akses ditolak.", "error");
+            const dashTab = new bootstrap.Tab(document.getElementById('tab-dashboard'));
+            dashTab.show();
+          });
+        } else {
+          const dashTab = new bootstrap.Tab(document.getElementById('tab-dashboard'));
+          dashTab.show();
+        }
+      });
+    }
+
+    function lockAppointmentAccess() {
+      isAppointmentAuthenticated = false;
+      sessionPassword = "";
+      document.getElementById('appointmentTableBody').innerHTML = "";
+      Swal.fire("Akses Dikunci", "", "info");
+      const dashTab = new bootstrap.Tab(document.getElementById('tab-dashboard'));
+      dashTab.show();
+    }
+
+    function checkAdminTabAccess() {
+      if (isAdminAuthenticated) {
+        renderSesiTable();
+        renderPensyarahTable();
+        renderAdminSupervisorTable();
+        renderAdminSuratTable();
+        renderAdminJadualSupervisorsList();
+        return;
+      }
+
+      Swal.fire({
+        title: 'Pengesahan Pentadbir (Admin)',
+        text: 'Masukkan Kata Laluan Pentadbir:',
+        input: 'password',
+        showCancelButton: true,
+        confirmButtonText: 'Buka Tab Pentadbir',
+        cancelButtonText: 'Batal'
+      }).then((result) => {
+        if (result.isConfirmed && result.value) {
+          verifyAdminPassword(result.value, function() {
+            isAdminAuthenticated = true;
+            Swal.fire("Akses Pentadbir Diterima!", "Selamat datang ke panel kawalan pentadbir.", "success");
+            renderSesiTable();
+            renderPensyarahTable();
+            renderAdminSupervisorTable();
+            renderAdminSuratTable();
+            renderAdminJadualSupervisorsList();
+          }, function(errMsg) {
+            Swal.fire("Kata Laluan Salah!", errMsg || "Akses ditolak.", "error");
+            const dashTab = new bootstrap.Tab(document.getElementById('tab-dashboard'));
+            dashTab.show();
+          });
+        } else {
+          const dashTab = new bootstrap.Tab(document.getElementById('tab-dashboard'));
+          dashTab.show();
+        }
+      });
+    }
+
+    function renderLecturerTable() {
+      const tbody = document.getElementById('lecturerTableBody');
+      tbody.innerHTML = "";
+
+      const kelasFilter = document.getElementById('filterLecturerKelas').value.toLowerCase();
+      const sesiFilter = document.getElementById('filterLecturerSesi').value.toLowerCase();
+      const statusFilter = document.getElementById('filterLecturerStatus').value.toLowerCase();
+      const searchFilter = document.getElementById('filterLecturerInput').value.toLowerCase();
+
+      let filteredData = globalProjectsData.filter(item => {
+        let matchKelas = !kelasFilter || (item.sheetName && item.sheetName.toLowerCase() === kelasFilter);
+        let matchSesi = !sesiFilter || (item.sesi && item.sesi.toLowerCase() === sesiFilter);
+        let matchStatus = !statusFilter || (item.status && item.status.toLowerCase() === statusFilter);
+        let matchSearch = !searchFilter || 
+                          (item.namaAhli && item.namaAhli.toLowerCase().includes(searchFilter)) ||
+                          (item.noPendaftaran && item.noPendaftaran.toLowerCase().includes(searchFilter)) ||
+                          (item.tajuk && item.tajuk.toLowerCase().includes(searchFilter)) ||
+                          (item.namaPenyelia && item.namaPenyelia.toLowerCase().includes(searchFilter));
+        return matchKelas && matchSesi && matchStatus && matchSearch;
+      });
+
+      if (filteredData.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="11" class="text-center text-muted">Tiada data pendaftaran dijumpai mengikut kriteria carian/penapis.</td></tr>`;
+        return;
+      }
+
+      filteredData.forEach((item, index) => {
+        let statusBadge = item.status === "Disahkan" ? "bg-success" : (item.status === "Ditolak" ? "bg-danger" : "bg-warning text-dark");
+        let propLink = item.pautanProposal ? `<a href="${item.pautanProposal}" target="_blank" class="btn btn-sm btn-outline-primary"><i class="fa-solid fa-file-pdf"></i> Dokumen</a>` : `<span class="text-muted">-</span>`;
+        let borangPdfLink = item.pautanBorangPdf ? `<a href="${item.pautanBorangPdf}" target="_blank" class="btn btn-sm btn-outline-danger"><i class="fa-solid fa-file-pdf"></i> Borang PDF</a>` : `<span class="text-muted">-</span>`;
+
+        let row = `
+          <tr>
+            <td class="text-center"><strong>${index + 1}</strong></td>
+            <td style="white-space: pre-line;">${item.namaAhli}</td>
+            <td style="white-space: pre-line;">${item.noPendaftaran}</td>
+            <td class="text-center"><span class="badge bg-secondary">${item.sheetName}</span></td>
+            <td>${item.tajuk}</td>
+            <td><strong>${item.namaPenyelia || '-'}</strong></td>
+            <td class="text-center">${propLink}</td>
+            <td class="text-center">${borangPdfLink}</td>
+            <td class="text-center"><span class="badge ${statusBadge}">${item.status}</span></td>
+            <td class="text-center"><small class="fw-semibold">${item.tarikh || '-'}</small></td>
+            <td class="text-center">
+              <button class="btn btn-sm btn-success me-1 mb-1" onclick="verifyProject('${item.sheetName}', ${item.rowIndex}, 'Disahkan')"><i class="fa-solid fa-check"></i> Sahkan</button>
+              <button class="btn btn-sm btn-danger me-1 mb-1" onclick="verifyProject('${item.sheetName}', ${item.rowIndex}, 'Ditolak')"><i class="fa-solid fa-xmark"></i> Tolak</button>
+            </td>
+          </tr>
+        `;
+        tbody.innerHTML += row;
+      });
+    }
+
+    function verifyProject(sheetName, rowIndex, newStatus) {
+      Swal.fire({
+        title: `Tukarkan status kepada ${newStatus}?`,
+        input: 'textarea',
+        inputPlaceholder: 'Masukkan catatan pensyarah (opsional)...',
+        showCancelButton: true,
+        confirmButtonText: 'Sahkan Status',
+        cancelButtonText: 'Batal'
+      }).then((result) => {
+        if (result.isConfirmed) {
+          showLoading("Kemaskini Pengesahan...");
+
+          if (typeof google !== 'undefined' && google.script && google.script.run) {
+            google.script.run
+              .withSuccessHandler(function(res) {
+                hideLoading();
+                if (res.success) {
+                  Swal.fire("Berjaya!", res.message, "success");
+                  loadInitialAppData();
+                } else {
+                  Swal.fire("Ralat!", res.message, "error");
+                }
+              })
+              .verifyProjectByLecturer(sheetName, rowIndex, newStatus, result.value || "", sessionPassword);
+          } else {
+            fetch(WEB_APP_URL, {
+              method: "POST",
+              body: JSON.stringify({ action: "verifyProject", sheetName: sheetName, rowIndex: rowIndex, status: newStatus, catatan: result.value || "", password: sessionPassword })
+            })
+            .then(res => res.json())
+            .then(res => {
+              hideLoading();
+              if (res.success) {
+                Swal.fire("Berjaya!", res.message, "success");
+                loadInitialAppData();
+              } else {
+                Swal.fire("Ralat!", res.message, "error");
+              }
+            });
+          }
+        }
+      });
+    }
+
+    function downloadFilteredPdfReport() {
+      const kelas = document.getElementById('filterLecturerKelas').value;
+      const sesi = document.getElementById('filterLecturerSesi').value;
+      const status = document.getElementById('filterLecturerStatus').value;
+      const searchFilter = document.getElementById('filterLecturerInput').value.toLowerCase();
+
+      showLoading("Menjana Laporan PDF Mengikut Penapis...");
+
+      let filteredData = globalProjectsData.filter(item => {
+        let matchKelas = !kelas || (item.sheetName && item.sheetName.toLowerCase() === kelas.toLowerCase());
+        let matchSesi = !sesi || (item.sesi && item.sesi.toLowerCase() === sesi.toLowerCase());
+        let matchStatus = !status || (item.status && item.status.toLowerCase() === status.toLowerCase());
+        let matchSearch = !searchFilter || 
+                          (item.namaAhli && item.namaAhli.toLowerCase().includes(searchFilter)) ||
+                          (item.noPendaftaran && item.noPendaftaran.toLowerCase().includes(searchFilter)) ||
+                          (item.tajuk && item.tajuk.toLowerCase().includes(searchFilter)) ||
+                          (item.namaPenyelia && item.namaPenyelia.toLowerCase().includes(searchFilter));
+        return matchKelas && matchSesi && matchStatus && matchSearch;
+      });
+
+      generateClientSidePdfReport(filteredData, kelas, sesi, status);
+    }
+
+    function generateClientSidePdfReport(data, kelas, sesi, status) {
+      hideLoading();
+      if (!data || data.length === 0) {
+        Swal.fire("Tiada Data", "Tiada rekod projek yang ditemui untuk dijana sebagai laporan PDF.", "warning");
+        return;
+      }
+
+      const printWindow = window.open('', '_blank');
+      if (!printWindow) {
+        Swal.fire("Ralat Popup", "Sila benarkan tetingkap timbul (pop-up) pada pelayar anda.", "error");
+        return;
+      }
+
+      let rowsHtml = '';
+      data.forEach((item, index) => {
+        rowsHtml += `
+          <tr>
+            <td style="text-align: center;">${index + 1}</td>
+            <td style="white-space: pre-line;">${item.namaAhli || '-'}</td>
+            <td style="white-space: pre-line;">${item.noPendaftaran || '-'}</td>
+            <td style="text-align: center;">${item.sheetName || '-'}</td>
+            <td>${item.tajuk || '-'}</td>
+            <td>${item.namaPenyelia || '-'}</td>
+            <td style="text-align: center;">${item.status || '-'}</td>
+            <td style="text-align: center;">${item.tarikh || '-'}</td>
+          </tr>
+        `;
+      });
+
+      const filterInfo = `
+        Kelas: ${kelas || 'Semua Kelas'} | 
+        Sesi: ${sesi || 'Semua Sesi'} | 
+        Status: ${status || 'Semua Status'}
+      `;
+
+      printWindow.document.write(`
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <title>Laporan Pengesahan & Kelulusan Projek Pelajar</title>
+          <style>
+            body { font-family: Arial, sans-serif; margin: 20px; font-size: 12px; color: #333; }
+            h2 { text-align: center; margin-bottom: 5px; color: #1e3c72; }
+            h4 { text-align: center; margin-top: 0; color: #555; }
+            .meta { margin-bottom: 15px; font-size: 11px; text-align: center; background: #f0f4f8; padding: 8px; border-radius: 5px; }
+            table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+            th, td { border: 1px solid #ccc; padding: 6px 8px; text-align: left; vertical-align: top; }
+            th { background-color: #1e3c72; color: white; font-weight: bold; text-align: center; }
+            tr:nth-child(even) { background-color: #f9f9f9; }
+            .footer { margin-top: 20px; text-align: right; font-size: 10px; color: #777; }
+            @media print {
+              body { margin: 0; }
+              .no-print { display: none; }
+            }
+          </style>
+        </head>
+        <body>
+          <h2>POLITEKNIK UNGKU OMAR</h2>
+          <h4>LAPORAN PENGESAHAN & KELULUSAN PROJEK PELAJAR</h4>
+          <div class="meta"><strong>Penapis:</strong> ${filterInfo} | <strong>Tarikh Dijana:</strong> ${new Date().toLocaleDateString('ms-MY')}</div>
+          
+          <div class="no-print" style="margin-bottom: 15px; text-align: center;">
+            <button onclick="window.print()" style="padding: 8px 16px; background-color: #1e3c72; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: bold;">
+              🖨️ Cetak / Simpan Sebagai PDF
+            </button>
+          </div>
+
+          <table>
+            <thead>
+              <tr>
+                <th style="width: 4%;">NO</th>
+                <th style="width: 20%;">NAMA AHLI KUMPULAN</th>
+                <th style="width: 15%;">NO. PENDAFTARAN</th>
+                <th style="width: 8%;">KELAS</th>
+                <th style="width: 25%;">TAJUK PROJEK</th>
+                <th style="width: 15%;">NAMA PENYELIA</th>
+                <th style="width: 8%;">STATUS</th>
+                <th style="width: 5%;">TARIKH</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${rowsHtml}
+            </tbody>
+          </table>
+
+          <div class="footer">
+            Sistem Pendaftaran Projek Pelajar - Dijana secara automatik.
+          </div>
+
+          <script>
+            window.onload = function() {
+              setTimeout(function() { window.print(); }, 500);
+            };
+          <\/script>
+        </body>
+        </html>
+      `);
+      printWindow.document.close();
+    }
+
+    function renderPublicTable() {
+      const tbody = document.getElementById('publicTableBody');
+      tbody.innerHTML = "";
+
+      const kelasFilter = document.getElementById('filterListKelas').value.toLowerCase();
+      const sesiFilter = document.getElementById('filterListSesi').value.toLowerCase();
+      const searchFilter = document.getElementById('filterListInput').value.toLowerCase();
+
+      let filteredData = globalProjectsData.filter(item => {
+        let matchKelas = !kelasFilter || (item.sheetName && item.sheetName.toLowerCase() === kelasFilter);
+        let matchSesi = !sesiFilter || (item.sesi && item.sesi.toLowerCase() === sesiFilter);
+        let matchSearch = !searchFilter || 
+                          (item.namaAhli && item.namaAhli.toLowerCase().includes(searchFilter)) ||
+                          (item.noPendaftaran && item.noPendaftaran.toLowerCase().includes(searchFilter)) ||
+                          (item.tajuk && item.tajuk.toLowerCase().includes(searchFilter)) ||
+                          (item.namaPenyelia && item.namaPenyelia.toLowerCase().includes(searchFilter));
+        return matchKelas && matchSesi && matchSearch;
+      });
+
+      if (filteredData.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="8" class="text-center text-muted">Tiada data pendaftaran projek dijumpai.</td></tr>`;
+        return;
+      }
+
+      filteredData.forEach((item, index) => {
+        let statusBadge = item.status === "Disahkan" ? "bg-success" : (item.status === "Ditolak" ? "bg-danger" : "bg-warning text-dark");
+        let docs = "";
+        if (item.pautanProposal) docs += `<a href="${item.pautanProposal}" target="_blank" class="badge bg-primary text-decoration-none me-1">Proposal / Laporan</a>`;
+        if (item.pautanLaporanAkhir) docs += `<a href="${item.pautanLaporanAkhir}" target="_blank" class="badge bg-info text-decoration-none me-1">Laporan Akhir</a>`;
+        if (item.pautanBorangPdf) docs += `<a href="${item.pautanBorangPdf}" target="_blank" class="badge bg-danger text-decoration-none me-1"><i class="fa-solid fa-file-pdf"></i> Borang PDF</a>`;
+        if (!docs) docs = `<span class="text-muted">Tiada Dokumen</span>`;
+
+        let row = `
+          <tr>
+            <td class="text-center"><strong>${index + 1}</strong></td>
+            <td style="white-space: pre-line;">${item.namaAhli}</td>
+            <td style="white-space: pre-line;">${item.noPendaftaran}</td>
+            <td>${item.tajuk}</td>
+            <td>${item.namaPenyelia}</td>
+            <td class="text-center"><span class="badge bg-light text-dark border">${item.sesi}</span></td>
+            <td class="text-center"><span class="badge ${statusBadge}">${item.status}</span></td>
+            <td class="text-center">${docs}</td>
+          </tr>
+        `;
+        tbody.innerHTML += row;
+      });
+    }
+
+    function renderJadualTable() {
+      const tbody = document.getElementById('jadualTableBody');
+      tbody.innerHTML = "";
+
+      const filterJenis = document.getElementById('filterJadualJenis').value.toLowerCase();
+      const filterSesi = document.getElementById('filterJadualSesi').value.toLowerCase();
+      const filterKelas = document.getElementById('filterJadualKelas').value.toLowerCase();
+
+      let filteredProjects = globalProjectsData.filter(item => {
+        let matchKelas = !filterKelas || (item.sheetName && item.sheetName.toLowerCase() === filterKelas);
+        let matchSesi = !filterSesi || (item.sesi && item.sesi.toLowerCase() === filterSesi);
+        
+        let hasProposalLink = !!item.jadualProposalUrl;
+        let hasAkhirLink = !!item.jadualAkhirUrl;
+
+        let matchJenis = true;
+        if (filterJenis === "proposal") {
+          matchJenis = hasProposalLink;
+        } else if (filterJenis === "akhir") {
+          matchJenis = hasAkhirLink;
+        }
+
+        return matchKelas && matchSesi && matchJenis;
+      });
+
+      if (filteredProjects.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="9" class="text-center text-muted">Tiada rekod jadual pembentangan dijumpai bagi penapis yang dipilih.</td></tr>`;
+        return;
+      }
+
+      filteredProjects.forEach((item, idx) => {
+        let proposalBtn = item.jadualProposalUrl ? 
+          `<a href="${item.jadualProposalUrl}" target="_blank" class="btn btn-sm btn-primary fw-semibold me-1 mb-1"><i class="fa-solid fa-file-pdf me-1"></i> Proposal</a>` : 
+          `<span class="badge bg-secondary mb-1">Belum Dimuat Naik</span>`;
+
+        let akhirBtn = item.jadualAkhirUrl ? 
+          `<a href="${item.jadualAkhirUrl}" target="_blank" class="btn btn-sm btn-success fw-semibold mb-1"><i class="fa-solid fa-file-pdf me-1"></i> Laporan Akhir</a>` : 
+          `<span class="badge bg-secondary">Belum Dimuat Naik</span>`;
+
+        let tarikhMasaDisplay = item.tarikhMasaProposal ? 
+          `<span class="badge bg-info text-dark shadow-sm p-2" style="font-size: 0.85rem; line-height: 1.4; white-space: pre-line;">${item.tarikhMasaProposal}</span>` : 
+          `<span class="text-muted">-</span>`;
+
+        let row = `
+          <tr>
+            <td class="text-center"><strong>${idx + 1}</strong></td>
+            <td style="white-space: pre-line;">${item.namaAhli}</td>
+            <td class="text-center"><span class="badge bg-secondary">${item.sheetName}</span></td>
+            <td class="text-center"><span class="badge bg-light text-dark border">${item.sesi}</span></td>
+            <td>${item.tajuk}</td>
+            <td><strong>${item.namaPenyelia || '-'}</strong></td>
+            <td style="white-space: pre-line;">${item.penilai || '-'}</td>
+            <td class="text-center">${tarikhMasaDisplay}</td>
+            <td class="text-center">${proposalBtn}<br>${akhirBtn}</td>
+          </tr>
+        `;
+        tbody.innerHTML += row;
+      });
+    }
+
+    function checkJadualAdminAccess() {
+      if (isJadualAdminAuthenticated) {
+        populateAdminProjectDropdown();
+        return;
+      }
+      Swal.fire({
+        title: 'Pengesahan Pentadbir Jadual',
+        text: 'Masukkan kata laluan untuk pengurusan jadual pembentangan:',
+        input: 'password',
+        showCancelButton: true,
+        confirmButtonText: 'Buka Pentadbir Jadual',
+        cancelButtonText: 'Batal'
+      }).then((res) => {
+        if (res.isConfirmed && res.value) {
+          verifyAdminPassword(res.value, function() {
+            isJadualAdminAuthenticated = true;
+            populateAdminProjectDropdown();
+          }, function(errMsg) {
+            Swal.fire("Ralat!", errMsg || "Kata laluan salah!", "error");
+          });
+        }
+      });
+    }
+
+    function populateAdminProjectDropdown() {
+      const selectedSesi = document.getElementById('adminScheduleSesi') ? document.getElementById('adminScheduleSesi').value : '';
+      const selectedKelas = document.getElementById('adminScheduleKelas').value;
+      const selectProject = document.getElementById('adminScheduleProject');
+      selectProject.innerHTML = '<option value="">-- Pilih Kumpulan / Projek Pelajar --</option>';
+
+      const previewBox = document.getElementById('adminProjectMembersPreview');
+      if (previewBox) previewBox.innerHTML = "";
+
+      const filtered = globalProjectsData.filter(p => {
+        let matchKelas = (p.sheetName === selectedKelas);
+        let matchSesi = !selectedSesi || (p.sesi && p.sesi === selectedSesi);
+        return matchKelas && matchSesi;
+      });
+
+      if (filtered.length === 0) {
+        selectProject.innerHTML = '<option value="">-- Tiada Projek Bagi Sesi / Kelas Ini --</option>';
+        return;
+      }
+
+      filtered.forEach(p => {
+        selectProject.innerHTML += `<option value="${p.rowIndex}">${p.tajuk} (Penyelia: ${p.namaPenyelia})</option>`;
+      });
+    }
+
+    function displayAdminProjectDetails() {
+      const selectedKelas = document.getElementById('adminScheduleKelas').value;
+      const rowIndex = document.getElementById('adminScheduleProject').value;
+      const previewBox = document.getElementById('adminProjectMembersPreview');
+
+      if (!previewBox) return;
+
+      if (!rowIndex) {
+        previewBox.innerHTML = "";
+        return;
+      }
+
+      const project = globalProjectsData.find(p => p.sheetName === selectedKelas && p.rowIndex == rowIndex);
+
+      if (project) {
+        previewBox.innerHTML = `
+          <div class="card bg-white border-info p-3 mb-3 shadow-sm">
+            <h6 class="fw-bold text-primary mb-2">
+              <i class="fa-solid fa-users me-2"></i>Maklumat Ahli Kumpulan & No. Pendaftaran Pelajar
+            </h6>
+            <div class="row g-3">
+              <div class="col-md-6">
+                <label class="form-label fw-semibold text-secondary small mb-1">NAMA AHLI KUMPULAN (Lajur B):</label>
+                <div class="p-2 bg-light border rounded text-dark fw-semibold" style="white-space: pre-line;">${project.namaAhli || '-'}</div>
+              </div>
+              <div class="col-md-6">
+                <label class="form-label fw-semibold text-secondary small mb-1">NO. PENDAFTARAN (Lajur C):</label>
+                <div class="p-2 bg-light border rounded text-dark fw-semibold" style="white-space: pre-line;">${project.noPendaftaran || '-'}</div>
+              </div>
+            </div>
+          </div>
+        `;
+      } else {
+        previewBox.innerHTML = "";
+      }
+    }
+
+    async function handleScheduleAdminSubmit(e) {
+      e.preventDefault();
+
+      const tarikhVal = document.getElementById('adminScheduleTarikh').value;
+      const masaVal = document.getElementById('adminScheduleMasa').value.trim();
+      const tempatVal = document.getElementById('adminScheduleTempat').value.trim();
+      const fileInput = document.getElementById('adminScheduleFile');
+      const file = fileInput ? fileInput.files[0] : null;
+
+      let formattedDate = tarikhVal;
+      if (tarikhVal) {
+        const parts = tarikhVal.split('-');
+        if (parts.length === 3) {
+          const months = ["Jan", "Feb", "Mac", "Apr", "Mei", "Jun", "Jul", "Ogos", "Sept", "Okt", "Nov", "Dis"];
+          const mIdx = parseInt(parts[1], 10) - 1;
+          formattedDate = `${parseInt(parts[2], 10)} ${months[mIdx] || parts[1]} ${parts[0]}`;
+        }
+      }
+
+      const combinedTarikhMasa = `${masaVal}\n(${tempatVal})\n${formattedDate}`;
+
+      showLoading("Menyimpan & Mengemaskini Jadual Pembentangan serta Dokumen...");
+
+      try {
+        const fileObj = file ? await readFileAsBase64(file) : null;
+
+        const scheduleData = {
+          sesi: document.getElementById('adminScheduleSesi') ? document.getElementById('adminScheduleSesi').value : '',
+          sheetName: document.getElementById('adminScheduleKelas').value,
+          rowIndex: document.getElementById('adminScheduleProject').value,
+          jenisPembentangan: document.getElementById('adminScheduleJenis').value,
+          tarikhMasa: combinedTarikhMasa,
+          panel1: document.getElementById('adminSchedulePanel1').value,
+          panel2: document.getElementById('adminSchedulePanel2').value,
+          fileObj: fileObj
+        };
+
+        if (typeof google !== 'undefined' && google.script && google.script.run) {
+          google.script.run.withSuccessHandler(function(res) {
+            hideLoading();
+            if (res.success) {
+              Swal.fire("Berjaya!", res.message, "success");
+              if (fileInput) fileInput.value = "";
+              loadInitialAppData();
+            } else {
+              Swal.fire("Ralat!", res.message, "error");
+            }
+          }).updateProjectScheduleByAdmin(scheduleData, sessionPassword);
+        } else {
+          fetch(WEB_APP_URL, {
+            method: "POST",
+            body: JSON.stringify({ action: "updateProjectScheduleByAdmin", scheduleData: scheduleData, password: sessionPassword })
+          })
+          .then(res => res.json())
+          .then(res => {
+            hideLoading();
+            if (res.success) {
+              Swal.fire("Berjaya!", res.message, "success");
+              if (fileInput) fileInput.value = "";
+              loadInitialAppData();
+            } else {
+              Swal.fire("Ralat!", res.message, "error");
+            }
+          });
+        }
+      } catch (err) {
+        hideLoading();
+        Swal.fire("Ralat Fail", "Gagal membaca fail dokumen jadual.", "error");
+      }
+    }
+
+    function renderAppointmentTable() {
+      const tbody = document.getElementById('appointmentTableBody');
+      tbody.innerHTML = "";
+
+      const filterSesi = document.getElementById('filterAppointmentSesi').value.trim().toLowerCase();
+
+      let filteredSupervisors = globalAllSupervisorsData;
+      if (filterSesi) {
+        filteredSupervisors = globalAllSupervisorsData.filter(s => s.sesi && s.sesi.toLowerCase() === filterSesi);
+      }
+
+      if (filteredSupervisors.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="6" class="text-center text-muted">Tiada surat lantikan penyelia / panel dijumpai.</td></tr>`;
+        return;
+      }
+
+      filteredSupervisors.forEach((sup, idx) => {
+        let pdfBtns = [];
+
+        if (sup.pautanSuratProposal) {
+          pdfBtns.push(`<a href="${sup.pautanSuratProposal}" target="_blank" class="btn btn-sm btn-primary me-1 mb-1"><i class="fa-solid fa-file-pdf me-1"></i> SURAT LANTIKAN PENYELIA</a>`);
+        }
+        if (sup.pautanSuratPenilai) {
+          pdfBtns.push(`<a href="${sup.pautanSuratPenilai}" target="_blank" class="btn btn-sm btn-success me-1 mb-1"><i class="fa-solid fa-file-pdf me-1"></i> SURAT LANTIKAN PENILAI</a>`);
+        }
+
+        let pdfDisplay = pdfBtns.length > 0 ? pdfBtns.join("") : `<span class="badge bg-secondary">Belum Dimuat Naik</span>`;
+
+        let row = `
+          <tr>
+            <td class="text-center"><strong>${idx + 1}</strong></td>
+            <td><strong>${sup.nama}</strong></td>
+            <td class="text-center"><span class="badge bg-secondary fs-6">${sup.bilKumpulan || 0}</span></td>
+            <td class="text-center"><span class="badge bg-info text-dark fs-6">${sup.penilai || 0}</span></td>
+            <td class="text-center"><span class="badge bg-light text-dark border">${sup.sesi || 'Sesi Umum'}</span></td>
+            <td class="text-center">${pdfDisplay}</td>
+          </tr>
+        `;
+        tbody.innerHTML += row;
+      });
+    }
+
+    function saveCurrentSessionSetting() {
+      const newSession = document.getElementById('adminCurrentSessionSelect').value.trim();
+      if (!newSession) {
+        Swal.fire("Sila Pilih Sesi Semasa", "", "warning");
+        return;
+      }
+
+      showLoading("Menyimpan Ketetapan Sesi Semasa...");
+      
+      if (typeof google !== 'undefined' && google.script && google.script.run) {
+        google.script.run
+          .withSuccessHandler(function(res) {
+            hideLoading();
+            if (res.success) {
+              Swal.fire("Berjaya!", res.message, "success");
+              loadInitialAppData();
+            } else {
+              Swal.fire("Ralat!", res.message, "error");
+            }
+          })
+          .setCurrentSession(newSession, sessionPassword);
+      } else {
+        fetch(WEB_APP_URL, {
+          method: "POST",
+          body: JSON.stringify({ action: "setCurrentSession", newSession: newSession, password: sessionPassword })
+        })
+        .then(res => res.json())
+        .then(res => {
+          hideLoading();
+          if (res.success) {
+            Swal.fire("Berjaya!", res.message, "success");
+            loadInitialAppData();
+          } else {
+            Swal.fire("Ralat!", res.message, "error");
+          }
+        });
+      }
+    }
+
+    function renderSesiTable() {
+      const tbody = document.getElementById('sesiTableBody');
+      if (!tbody) return;
+      tbody.innerHTML = "";
+
+      const countBadge = document.getElementById('sesiTotalCount');
+      if (countBadge) {
+        countBadge.innerHTML = `<i class="fa-solid fa-calendar me-1"></i> ${globalSesiData.length} Sesi`;
+      }
+
+      if (globalSesiData.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="3" class="text-center text-muted">Tiada data sesi dijumpai dalam tab SESI.</td></tr>`;
+        return;
+      }
+
+      globalSesiData.forEach((item, index) => {
+        let isCurrent = (item.sesi === currentActiveSession) ? `<span class="badge bg-success ms-2"><i class="fa-solid fa-check me-1"></i>Aktif</span>` : '';
+        let row = `
+          <tr>
+            <td class="text-center fw-bold">${item.bil || (index + 1)}</td>
+            <td><strong>${item.sesi}</strong> ${isCurrent}</td>
+            <td class="text-center">
+              <button class="btn btn-sm btn-warning me-1 mb-1" onclick="editSesiRow(${item.rowIndex}, '${item.sesi}')">
+                <i class="fa-solid fa-pen"></i> Edit
+              </button>
+              <button class="btn btn-sm btn-danger mb-1" onclick="deleteSesiRow(${item.rowIndex}, '${item.sesi}')">
+                <i class="fa-solid fa-trash"></i> Padam
+              </button>
+            </td>
+          </tr>
+        `;
+        tbody.innerHTML += row;
+      });
+    }
+
+    function editSesiRow(rowIndex, sesiName) {
+      document.getElementById('sesiRowIndex').value = rowIndex;
+      document.getElementById('sesiOldName').value = sesiName;
+      document.getElementById('sesiNamaInput').value = sesiName;
+      document.getElementById('sesiFormTitle').innerHTML = `<i class="fa-solid fa-pen-to-square me-2"></i>Kemaskini Sesi (Baris ${rowIndex})`;
+    }
+
+    function resetSesiForm() {
+      document.getElementById('sesiForm').reset();
+      document.getElementById('sesiRowIndex').value = "";
+      document.getElementById('sesiOldName').value = "";
+      document.getElementById('sesiFormTitle').innerHTML = `<i class="fa-solid fa-plus me-2"></i>Tambah / Kemaskini Sesi`;
+    }
+
+    function handleSesiSubmit(e) {
+      e.preventDefault();
+      
+      const formData = {
+        rowIndex: document.getElementById('sesiRowIndex').value,
+        oldSesi: document.getElementById('sesiOldName').value.trim(),
+        sesi: document.getElementById('sesiNamaInput').value.trim()
+      };
+
+      showLoading("Menyimpan & Menyelaraskan Sesi...");
+
+      if (typeof google !== 'undefined' && google.script && google.script.run) {
+        google.script.run
+          .withSuccessHandler(function(res) {
+            hideLoading();
+            if (res.success) {
+              Swal.fire("Berjaya!", res.message, "success");
+              resetSesiForm();
+              loadInitialAppData();
+            } else {
+              Swal.fire("Ralat!", res.message, "error");
+            }
+          })
+          .saveOrUpdateSesi(formData, sessionPassword);
+      } else {
+        fetch(WEB_APP_URL, {
+          method: "POST",
+          body: JSON.stringify({ action: "saveOrUpdateSesi", formData: formData, password: sessionPassword })
+        })
+        .then(res => res.json())
+        .then(res => {
+          hideLoading();
+          if (res.success) {
+            Swal.fire("Berjaya!", res.message, "success");
+            resetSesiForm();
+            loadInitialAppData();
+          } else {
+            Swal.fire("Ralat!", res.message, "error");
+          }
+        });
+      }
+    }
+
+    function deleteSesiRow(rowIndex, sesiName) {
+      Swal.fire({
+        title: `Adakah anda pasti untuk memadam sesi ini?`,
+        text: `Sesi: ${sesiName}`,
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonText: 'Ya, Padam',
+        cancelButtonText: 'Batal'
+      }).then((result) => {
+        if (result.isConfirmed) {
+          showLoading("Memadam Sesi...");
+
+          if (typeof google !== 'undefined' && google.script && google.script.run) {
+            google.script.run
+              .withSuccessHandler(function(res) {
+                hideLoading();
+                if (res.success) {
+                  Swal.fire("Berjaya!", res.message, "success");
+                  loadInitialAppData();
+                } else {
+                  Swal.fire("Ralat!", res.message, "error");
+                }
+              })
+              .deleteSesi(rowIndex, sessionPassword);
+          } else {
+            fetch(WEB_APP_URL, {
+              method: "POST",
+              body: JSON.stringify({ action: "deleteSesi", rowIndex: rowIndex, password: sessionPassword })
+            })
+            .then(res => res.json())
+            .then(res => {
+              hideLoading();
+              if (res.success) {
+                Swal.fire("Berjaya!", res.message, "success");
+                loadInitialAppData();
+              } else {
+                Swal.fire("Ralat!", res.message, "error");
+              }
+            });
+          }
+        }
+      });
+    }
+
+    function renderPensyarahTable() {
+      const tbody = document.getElementById('pensyarahTableBody');
+      if (!tbody) return;
+      tbody.innerHTML = "";
+
+      const filterInput = document.getElementById('filterPensyarahInput') ? document.getElementById('filterPensyarahInput').value.toLowerCase() : "";
+
+      let filtered = globalPensyarahData.filter(p => {
+        return !filterInput || (p.nama && p.nama.toLowerCase().includes(filterInput));
+      });
+
+      const countBadge = document.getElementById('pensyarahTotalCount');
+      if (countBadge) {
+        countBadge.innerHTML = `<i class="fa-solid fa-users me-1"></i> ${filtered.length} Pensyarah`;
+      }
+
+      if (filtered.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="3" class="text-center text-muted">Tiada data pensyarah dijumpai dalam tab PENSYARAH.</td></tr>`;
+        return;
+      }
+
+      filtered.forEach((item, index) => {
+        let row = `
+          <tr>
+            <td class="text-center fw-bold">${item.bil || (index + 1)}</td>
+            <td><strong>${item.nama}</strong></td>
+            <td class="text-center">
+              <button class="btn btn-sm btn-warning me-1 mb-1" onclick="editPensyarahRow(${item.rowIndex}, '${item.nama}')">
+                <i class="fa-solid fa-pen"></i> Edit
+              </button>
+              <button class="btn btn-sm btn-danger mb-1" onclick="deletePensyarahRow(${item.rowIndex}, '${item.nama}')">
+                <i class="fa-solid fa-trash"></i> Padam
+              </button>
+            </td>
+          </tr>
+        `;
+        tbody.innerHTML += row;
+      });
+    }
+
+    function editPensyarahRow(rowIndex, namaPensyarah) {
+      document.getElementById('pensyarahRowIndex').value = rowIndex;
+      document.getElementById('pensyarahOldName').value = namaPensyarah;
+      document.getElementById('pensyarahNamaInput').value = namaPensyarah;
+      document.getElementById('pensyarahFormTitle').innerHTML = `<i class="fa-solid fa-pen-to-square me-2"></i>Kemaskini Pensyarah (Baris ${rowIndex})`;
+    }
+
+    function resetPensyarahForm() {
+      document.getElementById('pensyarahForm').reset();
+      document.getElementById('pensyarahRowIndex').value = "";
+      document.getElementById('pensyarahOldName').value = "";
+      document.getElementById('pensyarahFormTitle').innerHTML = `<i class="fa-solid fa-user-plus me-2"></i>Tambah / Kemaskini Pensyarah`;
+    }
+
+    function handlePensyarahSubmit(e) {
+      e.preventDefault();
+      
+      const formData = {
+        rowIndex: document.getElementById('pensyarahRowIndex').value,
+        oldNama: document.getElementById('pensyarahOldName').value.trim(),
+        nama: document.getElementById('pensyarahNamaInput').value.trim()
+      };
+
+      showLoading("Menyimpan & Menyelaraskan Nama Pensyarah...");
+
+      if (typeof google !== 'undefined' && google.script && google.script.run) {
+        google.script.run
+          .withSuccessHandler(function(res) {
+            hideLoading();
+            if (res.success) {
+              Swal.fire("Berjaya!", res.message, "success");
+              resetPensyarahForm();
+              loadInitialAppData();
+            } else {
+              Swal.fire("Ralat!", res.message, "error");
+            }
+          })
+          .saveOrUpdatePensyarah(formData, sessionPassword);
+      } else {
+        fetch(WEB_APP_URL, {
+          method: "POST",
+          body: JSON.stringify({ action: "saveOrUpdatePensyarah", formData: formData, password: sessionPassword })
+        })
+        .then(res => res.json())
+        .then(res => {
+          hideLoading();
+          if (res.success) {
+            Swal.fire("Berjaya!", res.message, "success");
+            resetPensyarahForm();
+            loadInitialAppData();
+          } else {
+            Swal.fire("Ralat!", res.message, "error");
+          }
+        });
+      }
+    }
+
+    function deletePensyarahRow(rowIndex, namaPensyarah) {
+      Swal.fire({
+        title: `Adakah anda pasti untuk memadam pensyarah ini?`,
+        text: `Pensyarah: ${namaPensyarah}`,
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonText: 'Ya, Padam',
+        cancelButtonText: 'Batal'
+      }).then((result) => {
+        if (result.isConfirmed) {
+          showLoading("Memadam Pensyarah...");
+
+          if (typeof google !== 'undefined' && google.script && google.script.run) {
+            google.script.run
+              .withSuccessHandler(function(res) {
+                hideLoading();
+                if (res.success) {
+                  Swal.fire("Berjaya!", res.message, "success");
+                  loadInitialAppData();
+                } else {
+                  Swal.fire("Ralat!", res.message, "error");
+                }
+              })
+              .deletePensyarah(rowIndex, sessionPassword);
+          } else {
+            fetch(WEB_APP_URL, {
+              method: "POST",
+              body: JSON.stringify({ action: "deletePensyarah", rowIndex: rowIndex, password: sessionPassword })
+            })
+            .then(res => res.json())
+            .then(res => {
+              hideLoading();
+              if (res.success) {
+                Swal.fire("Berjaya!", res.message, "success");
+                loadInitialAppData();
+              } else {
+                Swal.fire("Ralat!", res.message, "error");
+              }
+            });
+          }
+        }
+      });
+    }
+
+    function renderAdminSupervisorTable() {
+      const tbody = document.getElementById('adminSupervisorTableBody');
+      if (!tbody) return;
+      tbody.innerHTML = "";
+
+      if (globalAllSupervisorsData.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="6" class="text-center text-muted">Tiada data penyelia dalam tab PENYELIA.</td></tr>`;
+        return;
+      }
+
+      globalAllSupervisorsData.forEach((item, index) => {
+        let row = `
+          <tr>
+            <td class="text-center"><strong>${index + 1}</strong></td>
+            <td><strong>${item.nama}</strong></td>
+            <td class="text-center"><span class="badge bg-secondary">${item.bilKumpulan}</span></td>
+            <td class="text-center"><span class="badge bg-info text-dark">${item.penilai}</span></td>
+            <td class="text-center"><span class="badge bg-light text-dark border">${item.sesi}</span></td>
+            <td class="text-center">
+              <button class="btn btn-sm btn-warning me-1 mb-1" onclick="editSupervisorRow(${item.rowIndex}, '${item.nama}', '${item.sesi}')">
+                <i class="fa-solid fa-pen"></i> Edit
+              </button>
+            </td>
+          </tr>
+        `;
+        tbody.innerHTML += row;
+      });
+    }
+
+    function renderAdminSuratTable() {
+      const tbody = document.getElementById('adminSuratSupervisorTableBody');
+      if (!tbody) return;
+      tbody.innerHTML = "";
+
+      if (globalAllSupervisorsData.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="7" class="text-center text-muted">Tiada data penyelia dalam tab PENYELIA.</td></tr>`;
+        return;
+      }
+
+      globalAllSupervisorsData.forEach((item, index) => {
+        let suratBadges = [];
+
+        if (item.pautanSuratProposal) {
+          suratBadges.push(`<a href="${item.pautanSuratProposal}" target="_blank" class="badge bg-success text-decoration-none me-1 mb-1"><i class="fa-solid fa-file-pdf me-1"></i>ada dokumen -penyelia</a>`);
+        }
+        if (item.pautanSuratPenilai) {
+          suratBadges.push(`<a href="${item.pautanSuratPenilai}" target="_blank" class="badge bg-primary text-decoration-none me-1 mb-1"><i class="fa-solid fa-file-pdf me-1"></i>ada dokumen- panel</a>`);
+        }
+
+        let suratDisplay = suratBadges.length > 0 ? suratBadges.join("<br>") : `<span class="badge bg-secondary">Tiada Dokumen</span>`;
+
+        let row = `
+          <tr>
+            <td class="text-center"><strong>${index + 1}</strong></td>
+            <td><strong>${item.nama}</strong></td>
+            <td class="text-center"><span class="badge bg-secondary">${item.bilKumpulan}</span></td>
+            <td class="text-center"><span class="badge bg-info text-dark">${item.penilai}</span></td>
+            <td class="text-center"><span class="badge bg-light text-dark border">${item.sesi}</span></td>
+            <td class="text-center">${suratDisplay}</td>
+            <td class="text-center">
+              <button class="btn btn-sm btn-outline-primary mb-1" onclick="openUploadSuratModal(${item.rowIndex}, '${item.nama}', '${item.sesi}')">
+                <i class="fa-solid fa-upload"></i> Upload Surat (PDF)
+              </button>
+            </td>
+          </tr>
+        `;
+        tbody.innerHTML += row;
+      });
+    }
+
+    function renderAdminJadualSupervisorsList() {
+      const container = document.getElementById('adminJadualSupervisorsContainer');
+      if (!container) return;
+      container.innerHTML = "";
+
+      const selectedSesi = document.getElementById('adminJadualSesi').value.trim().toLowerCase();
+
+      let filtered = globalAllSupervisorsData;
+      if (selectedSesi) {
+        filtered = globalAllSupervisorsData.filter(s => s.sesi && s.sesi.trim().toLowerCase() === selectedSesi);
+      }
+
+      if (filtered.length === 0) {
+        container.innerHTML = `<div class="col-12 text-muted small">Tiada penilai/penyelia berdaftar bagi sesi yang dipilih pada tab PENYELIA.</div>`;
+        return;
+      }
+
+      const selectAllCb = document.getElementById('selectAllSupervisorsJadual');
+      if (selectAllCb) selectAllCb.checked = true;
+
+      filtered.forEach((s, idx) => {
+        const div = document.createElement('div');
+        div.className = 'col-md-6 col-lg-4';
+        div.innerHTML = `
+          <div class="form-check">
+            <input class="form-check-input jadual-sup-checkbox" type="checkbox" value="${s.nama}" id="sup_chk_${idx}" checked>
+            <label class="form-check-label small" for="sup_chk_${idx}">
+              <strong>${s.nama}</strong>
+            </label>
+          </div>
+        `;
+        container.appendChild(div);
+      });
+    }
+
+    function toggleSelectAllSupervisorsJadual(master) {
+      const checkboxes = document.querySelectorAll('.jadual-sup-checkbox');
+      checkboxes.forEach(cb => {
+        cb.checked = master.checked;
+      });
+    }
+
+    function openUploadSuratModal(rowIndex, namaPenyelia, sesi) {
+      Swal.fire({
+        title: `Upload Surat Lantikan`,
+        html: `
+          <p class="mb-3 text-primary fw-bold">${namaPenyelia} <span class="text-muted">(${sesi || 'Sesi Umum'})</span></p>
+          <div class="mb-3 text-start">
+            <label class="form-label fw-semibold small">Jenis Surat Lantikan:</label>
+            <select id="swalSuratJenisInput" class="form-select">
+              <option value="PROPOSAL">Surat Lantikan Penyelia (Proposal)</option>
+              <option value="PENILAI">Surat Lantikan Panel Penilai</option>
+            </select>
+          </div>
+          <div class="text-start">
+            <label class="form-label fw-semibold small">Pilih Fail Dokumen PDF:</label>
+            <input type="file" id="swalSuratFileInput" class="form-control" accept=".pdf">
+          </div>
+        `,
+        showCancelButton: true,
+        confirmButtonText: 'Muat Naik (PDF)',
+        cancelButtonText: 'Batal',
+        preConfirm: () => {
+          const fileInput = document.getElementById('swalSuratFileInput');
+          const jenisInput = document.getElementById('swalSuratJenisInput');
+          if (!fileInput.files[0]) {
+            Swal.showValidationMessage('Sila pilih fail PDF Surat Lantikan!');
+            return false;
+          }
+          return { file: fileInput.files[0], jenis: jenisInput.value };
+        }
+      }).then(async (result) => {
+        if (result.isConfirmed && result.value) {
+          const jenis = result.value.jenis;
+          showLoading("Muat Naik Surat Lantikan...");
+          try {
+            const fileObj = await readFileAsBase64(result.value.file);
+            if (typeof google !== 'undefined' && google.script && google.script.run) {
+              google.script.run
+                .withSuccessHandler(function(res) {
+                  hideLoading();
+                  if (res.success) {
+                    Swal.fire("Berjaya!", res.message, "success");
+                    loadInitialAppData();
+                  } else {
+                    Swal.fire("Ralat!", res.message, "error");
+                  }
+                })
+                .uploadSuratLantikan(rowIndex, fileObj, sesi || currentActiveSession, jenis, sessionPassword);
+            } else {
+              fetch(WEB_APP_URL, {
+                method: "POST",
+                body: JSON.stringify({ action: "uploadSuratLantikan", rowIndex: rowIndex, fileObj: fileObj, session: sesi || currentActiveSession, jenis: jenis, password: sessionPassword })
+              })
+              .then(res => res.json())
+              .then(res => {
+                hideLoading();
+                if (res.success) {
+                  Swal.fire("Berjaya!", res.message, "success");
+                  loadInitialAppData();
+                } else {
+                  Swal.fire("Ralat!", res.message, "error");
+                }
+              });
+            }
+          } catch (e) {
+            hideLoading();
+            Swal.fire("Ralat Fail", "Gagal membaca fail.", "error");
+          }
+        }
+      });
+    }
+
+    async function handleJadualSubmit() {
+      const type = document.getElementById('adminJadualJenis').value;
+      const sesi = document.getElementById('adminJadualSesi').value || currentActiveSession;
+      const kelas = document.getElementById('adminJadualKelas').value;
+      const file = document.getElementById('adminJadualFile').files[0];
+
+      if (!file) {
+        Swal.fire("Pilih Fail", "Sila pilih fail PDF/Dokumen jadual pembentangan.", "warning");
+        return;
+      }
+
+      let selectedSupervisors = [];
+      const checkboxes = document.querySelectorAll('.jadual-sup-checkbox:checked');
+      checkboxes.forEach(cb => {
+        selectedSupervisors.push(cb.value);
+      });
+
+      showLoading(`Muat Naik Jadual Pembentangan ${type} secara Pukal...`);
+
+      try {
+        const fileObj = await readFileAsBase64(file);
+        if (typeof google !== 'undefined' && google.script && google.script.run) {
+          google.script.run
+            .withSuccessHandler(function(res) {
+              hideLoading();
+              if (res.success) {
+                Swal.fire("Berjaya!", res.message, "success");
+                document.getElementById('adminJadualFile').value = "";
+                loadInitialAppData();
+              } else {
+                Swal.fire("Ralat!", res.message, "error");
+              }
+            })
+            .uploadJadualPembentangan(type, fileObj, sesi, kelas, selectedSupervisors, sessionPassword);
+        } else {
+          fetch(WEB_APP_URL, {
+            method: "POST",
+            body: JSON.stringify({ action: "uploadJadualPembentangan", type: type, fileObj: fileObj, session: sesi, kelas: kelas, selectedSupervisors: selectedSupervisors, password: sessionPassword })
+          })
+          .then(res => res.json())
+          .then(res => {
+            hideLoading();
+            if (res.success) {
+              Swal.fire("Berjaya!", res.message, "success");
+              document.getElementById('adminJadualFile').value = "";
+              loadInitialAppData();
+            } else {
+              Swal.fire("Ralat!", res.message, "error");
+            }
+          });
+        }
+      } catch(e) {
+        hideLoading();
+        Swal.fire("Ralat Fail", "Gagal membaca fail.", "error");
+      }
+    }
+
+    function editSupervisorRow(rowIndex, nama, sesi) {
+      document.getElementById('supRowIndex').value = rowIndex;
+      document.getElementById('supNama').value = nama;
+      document.getElementById('supSesi').value = sesi;
+      document.getElementById('supervisorFormTitle').innerHTML = `<i class="fa-solid fa-pen-to-square me-2"></i>Kemaskini Penyelia (Baris ${rowIndex})`;
+    }
+
+    function resetSupervisorForm() {
+      document.getElementById('supervisorForm').reset();
+      document.getElementById('supRowIndex').value = "";
+      document.getElementById('supervisorFormTitle').innerHTML = `<i class="fa-solid fa-user-plus me-2"></i>Tambah / Kemaskini Penyelia (Tab PENYELIA)`;
+    }
+
+    function handleSupervisorSubmit(e) {
+      e.preventDefault();
+      
+      const formData = {
+        rowIndex: document.getElementById('supRowIndex').value,
+        nama: document.getElementById('supNama').value.trim(),
+        sesi: document.getElementById('supSesi').value.trim()
+      };
+
+      showLoading("Menyimpan Rekod Penyelia...");
+
+      if (typeof google !== 'undefined' && google.script && google.script.run) {
+        google.script.run
+          .withSuccessHandler(function(res) {
+            hideLoading();
+            if (res.success) {
+              Swal.fire("Berjaya!", res.message, "success");
+              resetSupervisorForm();
+              loadInitialAppData();
+            } else {
+              Swal.fire("Ralat!", res.message, "error");
+            }
+          })
+          .saveSupervisor(formData, sessionPassword);
+      } else {
+        fetch(WEB_APP_URL, {
+          method: "POST",
+          body: JSON.stringify({ action: "saveSupervisor", formData: formData, password: sessionPassword })
+        })
+        .then(res => res.json())
+        .then(res => {
+          hideLoading();
+          if (res.success) {
+            Swal.fire("Berjaya!", res.message, "success");
+            resetSupervisorForm();
+            loadInitialAppData();
+          } else {
+            Swal.fire("Ralat!", res.message, "error");
+          }
+        });
+      }
+    }
+
+    async function handleSuratPukalSubmit() {
+      const jenis = document.getElementById('adminSuratJenis').value;
+      const sesi = document.getElementById('adminSuratSesi').value || currentActiveSession;
+      const file = document.getElementById('adminSuratFile').files[0];
+
+      if (!file) {
+        Swal.fire("Pilih Fail", "Sila pilih fail PDF Surat Lantikan Pukal.", "warning");
+        return;
+      }
+
+      showLoading(`Muat Naik Surat Lantikan Pukal (${jenis === 'PENILAI' ? 'Panel Penilai' : 'Penyelia'}) - ${sesi}...`);
+
+      try {
+        const fileObj = await readFileAsBase64(file);
+        if (typeof google !== 'undefined' && google.script && google.script.run) {
+          google.script.run
+            .withSuccessHandler(function(res) {
+              hideLoading();
+              if (res.success) {
+                Swal.fire("Berjaya!", res.message, "success");
+                document.getElementById('adminSuratFile').value = "";
+                loadInitialAppData();
+              } else {
+                Swal.fire("Ralat!", res.message, "error");
+              }
+            })
+            .uploadSuratLantikanPukal(sesi, jenis, fileObj, sessionPassword);
+        } else {
+          fetch(WEB_APP_URL, {
+            method: "POST",
+            body: JSON.stringify({ action: "uploadSuratLantikanPukal", session: sesi, jenis: jenis, fileObj: fileObj, password: sessionPassword })
+          })
+          .then(res => res.json())
+          .then(res => {
+            hideLoading();
+            if (res.success) {
+              Swal.fire("Berjaya!", res.message, "success");
+              document.getElementById('adminSuratFile').value = "";
+              loadInitialAppData();
+            } else {
+              Swal.fire("Ralat!", res.message, "error");
+            }
+          });
+        }
+      } catch(e) {
+        hideLoading();
+        Swal.fire("Ralat Fail", "Gagal membaca fail.", "error");
+      }
+    }
+  </script>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
